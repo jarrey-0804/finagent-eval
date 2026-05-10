@@ -1,0 +1,138 @@
+# =============================================================================
+# AlertManager Configuration for finagent-eval
+# =============================================================================
+# Production-ready configuration with severity-based routing,
+# inhibition rules, and webhook notification placeholders.
+# =============================================================================
+
+global:
+  # How long to wait before resolving an alert if it is no longer firing
+  resolve_timeout: 5m
+
+  # Default SMTP configuration (placeholder for production)
+  smtp_smarthost: "smtp.example.com:587"
+  smtp_from: "finagent-eval-alerts@example.com"
+  smtp_auth_username: "alerts@example.com"
+  smtp_auth_password: "<smtp-password>"
+  smtp_require_tls: true
+
+# Templates for notification formatting
+templates:
+  - "/etc/alertmanager/templates/*.tmpl"
+
+# Route tree: defines how alerts are grouped and routed to receivers
+route:
+  # Default receiver for alerts that don't match any child route
+  receiver: "default-webhook"
+
+  # Group alerts by these labels for notification batching
+  group_by: ["alertname", "severity", "team"]
+
+  # How long to wait before sending the first notification for a new group
+  group_wait: 30s
+
+  # How long to wait before sending a notification about new alerts added
+  # to an existing group
+  group_interval: 5m
+
+  # How long to wait before re-sending a notification for an alert that
+  # is still firing
+  repeat_interval: 4h
+
+  # Default labels applied to all alerts processed by this route
+  # (none by default)
+
+  # Child routes with severity-based routing
+  routes:
+    # Critical alerts: immediate notification via webhook + email
+    - match:
+        severity: critical
+      receiver: "critical-webhook"
+      group_wait: 10s
+      group_interval: 2m
+      repeat_interval: 1h
+      routes:
+        # MCP server down gets its own fast lane
+        - match:
+            alertname: MCPServerDown
+          receiver: "critical-webhook"
+          group_wait: 0s
+          repeat_interval: 15m
+
+    # Warning alerts: standard notification cadence
+    - match:
+        severity: warning
+      receiver: "warning-webhook"
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 4h
+
+# Inhibition rules: suppress notifications when a higher-severity alert
+# is already firing for the same entity
+inhibit_rules:
+  # If a critical alert is firing for a given alertname, suppress
+  # any warning alerts with the same alertname
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ["alertname", "team"]
+
+  # If MCPServerDown is firing, suppress HighEvaluationFailureRate
+  # since the failures are likely caused by the MCP outage
+  - source_match:
+      alertname: MCPServerDown
+    target_match:
+      alertname: HighEvaluationFailureRate
+    equal: ["team"]
+
+  # If EvaluationTimeout is firing, suppress HighJudgeLatency
+  # since the timeout is likely caused by the high latency
+  - source_match:
+      alertname: EvaluationTimeout
+    target_match:
+      alertname: HighJudgeLatency
+    equal: ["team"]
+
+# Receivers: define where notifications are sent
+receivers:
+  # Default receiver: webhook placeholder for generic alert forwarding
+  - name: "default-webhook"
+    webhook_configs:
+      - url: "https://hooks.example.com/alerts/default"
+        send_resolved: true
+        http_config:
+          # Placeholder for authentication headers
+          # bearer_token: "<webhook-token>"
+          tls_config:
+            insecure_skip_verify: false
+
+  # Critical receiver: webhook + email for high-priority alerts
+  - name: "critical-webhook"
+    webhook_configs:
+      - url: "https://hooks.example.com/alerts/critical"
+        send_resolved: true
+        http_config:
+          # bearer_token: "<critical-webhook-token>"
+          tls_config:
+            insecure_skip_verify: false
+    email_configs:
+      - to: "finagent-eval-oncall@example.com"
+        send_resolved: true
+        headers:
+          Subject: "[CRITICAL] {{ .GroupLabels.alertname }} - {{ .GroupLabels.team }}"
+
+  # Warning receiver: webhook for standard alerts
+  - name: "warning-webhook"
+    webhook_configs:
+      - url: "https://hooks.example.com/alerts/warning"
+        send_resolved: true
+        http_config:
+          # bearer_token: "<warning-webhook-token>"
+          tls_config:
+            insecure_skip_verify: false
+    email_configs:
+      - to: "finagent-eval-team@example.com"
+        send_resolved: true
+        headers:
+          Subject: "[WARN] {{ .GroupLabels.alertname }} - {{ .GroupLabels.team }}"

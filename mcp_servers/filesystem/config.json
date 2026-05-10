@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "uvx",
+      "args": ["mcp-server-filesystem", "/path/to/allowed/directory"],
+      "description": "文件系统访问（本地数据文件读写）"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "yahoo-finance": {
+      "command": "uvx",
+      "args": ["mcp-server-yahoo-finance"],
+      "description": "Global stock market data, quotes, historical prices"
+    }
+  }
+}

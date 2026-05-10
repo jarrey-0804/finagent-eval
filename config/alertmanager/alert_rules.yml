@@ -1,0 +1,152 @@
+# =============================================================================
+# AlertManager Rules for finagent-eval
+# =============================================================================
+# Prometheus recording/alerting rules
+# References metrics from MetricsCollector (monitor/metrics.py):
+#   Counters:  finagent_evaluations_total, finagent_evaluations_completed_total,
+#              finagent_llm_calls_total, finagent_llm_tokens_total,
+#              finagent_llm_cost_usd_total, finagent_mcp_tool_calls_total
+#   Gauges:    finagent_evaluations_active, finagent_mcp_server_up
+#   Summaries: finagent_evaluation_duration_seconds, finagent_llm_latency_ms
+# =============================================================================
+
+groups:
+  - name: finagent_eval_alerts
+    rules:
+      # ------------------------------------------------------------------
+      # Alert 1: High Evaluation Failure Rate
+      # Triggered when > 30% of evaluations fail over a 5-minute window
+      # ------------------------------------------------------------------
+      - alert: HighEvaluationFailureRate
+        expr: |
+          (
+            sum(rate(finagent_evaluations_completed_total{status="failure"}[5m]))
+            /
+            sum(rate(finagent_evaluations_completed_total[5m]))
+          ) > 0.30
+        for: 5m
+        labels:
+          severity: warning
+          team: finagent-eval
+        annotations:
+          summary: "Evaluation failure rate exceeds 30%"
+          description: >
+            The evaluation failure rate is {{ $value | humanizePercentage }}
+            (threshold: 30%) over the last 5 minutes. This may indicate issues
+            with the evaluation pipeline, agent adapters, or test infrastructure.
+          runbook_url: "https://wiki.example.com/runbooks/finagent-eval/high-failure-rate"
+
+      # ------------------------------------------------------------------
+      # Alert 2: Evaluation Timeout
+      # Triggered when a single evaluation runs longer than 30 minutes
+      # ------------------------------------------------------------------
+      - alert: EvaluationTimeout
+        expr: |
+          (
+            finagent_evaluation_duration_seconds_sum
+            /
+            finagent_evaluation_duration_seconds_count
+          ) > 1800
+        for: 1m
+        labels:
+          severity: critical
+          team: finagent-eval
+        annotations:
+          summary: "Evaluation duration exceeds 30 minutes"
+          description: >
+            Average evaluation duration is {{ $value | humanizeDuration }}.
+            An evaluation may be stuck or the agent under test is unresponsive.
+            Check the pipeline logs and consider increasing the timeout or
+            terminating the hung evaluation.
+          runbook_url: "https://wiki.example.com/runbooks/finagent-eval/eval-timeout"
+
+      # ------------------------------------------------------------------
+      # Alert 3: High LLM Judge Latency
+      # Triggered when p95 LLM judge latency exceeds 60 seconds
+      # ------------------------------------------------------------------
+      - alert: HighJudgeLatency
+        expr: |
+          (
+            histogram_quantile(0.95,
+              rate(finagent_llm_latency_ms_bucket[5m])
+            ) / 1000
+          ) > 60
+        for: 5m
+        labels:
+          severity: warning
+          team: finagent-eval
+        annotations:
+          summary: "LLM Judge p95 latency exceeds 60 seconds"
+          description: >
+            The p95 latency for LLM judge calls is {{ $value | humanizeDuration }}.
+            This may be caused by LLM provider throttling, network issues, or
+            overly complex evaluation prompts. Consider switching models or
+            reducing prompt complexity.
+          runbook_url: "https://wiki.example.com/runbooks/finagent-eval/high-judge-latency"
+
+      # ------------------------------------------------------------------
+      # Alert 4: Low Inter-Rater Consistency (ICC)
+      # Triggered when ICC drops below 0.75 for 3 consecutive evaluations
+      # Note: Requires a custom exporter or metric for ICC; this rule uses
+      #       a placeholder metric name that should be populated by the
+      #       consensus scoring module.
+      # ------------------------------------------------------------------
+      - alert: LowICC
+        expr: |
+          finagent_judge_icc_score < 0.75
+        for: 15m
+        labels:
+          severity: warning
+          team: finagent-eval
+        annotations:
+          summary: "Judge ICC score below 0.75"
+          description: >
+            The inter-rater consistency (ICC) score is {{ $value }},
+            below the 0.75 threshold for 3 consecutive evaluations.
+            This indicates judges are disagreeing significantly on scoring.
+            Review judge prompts, scoring rubrics, and consider recalibrating.
+          runbook_url: "https://wiki.example.com/runbooks/finagent-eval/low-icc"
+
+      # ------------------------------------------------------------------
+      # Alert 5: MCP Server Down
+      # Triggered when any MCP server health check fails for 2 minutes
+      # ------------------------------------------------------------------
+      - alert: MCPServerDown
+        expr: |
+          finagent_mcp_server_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: finagent-eval
+        annotations:
+          summary: "MCP server {{ $labels.server }} is down"
+          description: >
+            MCP server "{{ $labels.server }}" has been unhealthy for over 2
+            minutes. Evaluations relying on this server will fail. Check the
+            server process, network connectivity, and restart if necessary.
+          runbook_url: "https://wiki.example.com/runbooks/finagent-eval/mcp-server-down"
+
+      # ------------------------------------------------------------------
+      # Alert 6: Rate Limit Exceeded
+      # Triggered when rate limit utilization exceeds 80% of threshold
+      # Note: Requires a custom metric exported by the rate limiter middleware.
+      # ------------------------------------------------------------------
+      - alert: RateLimitExceeded
+        expr: |
+          (
+            finagent_ratelimit_requests_total
+            /
+            finagent_ratelimit_limit
+          ) > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          team: finagent-eval
+        annotations:
+          summary: "API rate limit utilization exceeds 80%"
+          description: >
+            Rate limit utilization is at {{ $value | humanizePercentage }}
+            of the configured threshold. Incoming requests may be throttled
+            soon. Consider increasing the rate limit, adding API quota, or
+            reducing evaluation concurrency.
+          runbook_url: "https://wiki.example.com/runbooks/finagent-eval/rate-limit-exceeded"

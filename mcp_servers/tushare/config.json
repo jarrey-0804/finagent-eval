@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "tushare": {
+      "command": "uvx",
+      "args": ["mcp-server-tushare"],
+      "env": {
+        "TUSHARE_TOKEN": "YOUR_TUSHARE_TOKEN_HERE"
+      },
+      "description": "中国A股市场数据（行情、财务、资金流向）"
+    }
+  }
+}

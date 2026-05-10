@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "sec-edgar": {
+      "command": "uvx",
+      "args": ["mcp-server-sec-edgar"],
+      "env": {
+        "SEC_API_KEY": "YOUR_SEC_API_KEY_HERE"
+      },
+      "description": "US SEC public company filings data"
+    }
+  }
+}

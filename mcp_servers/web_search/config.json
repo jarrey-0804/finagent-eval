@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "web-search": {
+      "command": "uvx",
+      "args": ["mcp-server-web-search"],
+      "env": {
+        "SEARCH_API_KEY": "YOUR_SEARCH_API_KEY_HERE",
+        "SEARCH_ENGINE_ID": "YOUR_SEARCH_ENGINE_ID_HERE"
+      },
+      "description": "网络搜索（金融新闻、研报、公告检索）"
+    }
+  }
+}

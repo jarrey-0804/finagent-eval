@@ -1,0 +1,37 @@
+{
+  "name": "BizFinBench",
+  "version": "1.0",
+  "description": "金融业务场景基准测试",
+  "tasks": [
+    {
+      "id": "bizfin_001",
+      "query": "请分析贵州茅台（600519）最近一个季度的财务状况，包括营收、净利润、毛利率等关键指标的变化趋势。",
+      "context": {"stock_code": "600519", "stock_name": "贵州茅台", "period": "2024Q3"},
+      "expected_output": {"type": "analysis_report", "key_metrics": ["营收", "净利润", "毛利率", "ROE"]},
+      "reference_answer": "贵州茅台2024年Q3实现营收388.45亿元，同比增长15.2%。净利润193.5亿元，毛利率91.5%。",
+      "difficulty": "medium",
+      "category": "analysis_reasoning",
+      "dimensions": ["accuracy", "completeness", "reasoning"]
+    },
+    {
+      "id": "bizfin_002",
+      "query": "根据当前市场环境，为一位风险偏好中等的投资者推荐适合的资产配置方案。",
+      "context": {"investor_profile": {"risk_tolerance": "moderate", "investment_horizon": "3-5 years", "initial_capital": 500000}},
+      "expected_output": {"type": "investment_proposal", "components": ["asset_allocation", "risk_analysis", "expected_returns"]},
+      "reference_answer": "建议配置：股票型基金40%，债券型基金30%，货币基金20%，黄金10%。",
+      "difficulty": "hard",
+      "category": "decision_support",
+      "dimensions": ["reasoning", "compliance", "risk_awareness"]
+    },
+    {
+      "id": "bizfin_003",
+      "query": "某基金产品宣传材料中声称'历史年化收益率15%'，请评估该表述的合规性。",
+      "context": {"product_type": "混合型基金", "claim": "历史年化收益率15%", "data_period": "2020-2023"},
+      "expected_output": {"type": "compliance_assessment", "check_points": ["风险提示", "业绩展示规范", "免责声明"]},
+      "reference_answer": "根据《公开募集证券投资基金宣传推介材料管理规定》，需注明'历史业绩不代表未来表现'。",
+      "difficulty": "expert",
+      "category": "compliance_check",
+      "dimensions": ["compliance", "professionalism"]
+    }
+  ]
+}

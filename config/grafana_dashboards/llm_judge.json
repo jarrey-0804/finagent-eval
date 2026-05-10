@@ -1,0 +1,69 @@
+{
+  "annotations": { "list": [{ "builtIn": 1, "datasource": { "type": "grafana", "uid": "-- Grafana --" }, "enable": true, "hide": true, "name": "Annotations & Alerts", "type": "dashboard" }] },
+  "description": "LLM Judge 评估面板 - 延迟、一致性、错误率监控",
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "refresh": "15s",
+  "schemaVersion": 39,
+  "tags": ["finagent-eval", "llm-judge", "monitoring"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "LLM Judge 评估",
+  "uid": "finagent-eval-llm-judge",
+  "version": 1,
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1, "title": "Judge 调用延迟 (按模型)", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(finagent_llm_judge_latency_ms_bucket[5m])) by (le, model))", "legendFormat": "{{model}} p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(finagent_llm_judge_latency_ms_bucket[5m])) by (le, model))", "legendFormat": "{{model}} p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(finagent_llm_judge_latency_ms_bucket[5m])) by (le, model))", "legendFormat": "{{model}} p99", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10, "showPoints": "never" } } },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom" } }
+    },
+    {
+      "id": 2, "title": "ICC 一致性评分趋势", "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "finagent_judge_icc_score", "legendFormat": "ICC Score", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "max": 1, "decimals": 3, "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "yellow", "value": 0.5 }, { "color": "green", "value": 0.75 }] } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdMarkers": true, "orientation": "auto" }
+    },
+    {
+      "id": 3, "title": "Judge 共识率分布", "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum(finagent_llm_judge_calls_total{consensus=\"unanimous\"})", "legendFormat": "一致通过", "refId": "A" },
+        { "expr": "sum(finagent_llm_judge_calls_total{consensus=\"majority\"})", "legendFormat": "多数通过", "refId": "B" },
+        { "expr": "sum(finagent_llm_judge_calls_total{consensus=\"average\"})", "legendFormat": "平均通过", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "legend": { "displayMode": "table", "placement": "right" }, "pieType": "donut" }
+    },
+    {
+      "id": 4, "title": "Judge 错误率 (按模型)", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum(rate(finagent_llm_judge_calls_total{status=\"error\"}[5m])) by (model) / sum(rate(finagent_llm_judge_calls_total[5m])) by (model) * 100", "legendFormat": "{{model}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 15, "showPoints": "never" }, "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 10 }] } } },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom" } }
+    },
+    {
+      "id": 5, "title": "Judge 总调用次数 (按模型)", "type": "stat",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(finagent_llm_judge_calls_total) by (model)", "legendFormat": "{{model}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "blue", "value": 0 }] } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background_solid", "graphMode": "none" }
+    }
+  ]
+}

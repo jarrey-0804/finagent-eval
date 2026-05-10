@@ -1,0 +1,37 @@
+{
+  "name": "TraderBench",
+  "version": "1.0",
+  "description": "交易策略基准测试",
+  "tasks": [
+    {
+      "id": "trader_001",
+      "query": "请设计一个基于布林带突破的交易策略，设定明确的入场条件、出场条件和仓位管理规则，并说明该策略适用的市场环境。",
+      "context": {"strategy_type": "技术指标策略", "indicator": "布林带(BOLL)", "market": "A股"},
+      "expected_output": {"type": "strategy_design", "components": ["入场条件", "出场条件", "仓位管理", "适用市场环境", "风险提示"]},
+      "reference_answer": "入场条件：股价突破布林带上轨且成交量放大至20日均量的1.5倍以上。出场条件：股价回落至布林带中轨下方或亏损达到总资金的2%。仓位管理：单笔交易不超过总资金的10%，同方向持仓不超过总资金的30%。适用于震荡偏多行情，趋势行情中需结合其他指标过滤。",
+      "difficulty": "medium",
+      "category": "strategy_design",
+      "dimensions": ["reasoning", "completeness", "risk_awareness"]
+    },
+    {
+      "id": "trader_002",
+      "query": "对以下双均线交叉策略进行回测评估：以5日均线和20日均线为信号线，金叉买入、死叉卖出，手续费按万三计算。请分析该策略在2023年沪深300成分股上的表现，包括年化收益率、最大回撤、胜率和盈亏比。",
+      "context": {"strategy": "双均线交叉", "fast_ma": 5, "slow_ma": 20, "commission_rate": 0.0003, "universe": "沪深300成分股", "backtest_period": "2023-01-01至2023-12-31"},
+      "expected_output": {"type": "backtest_report", "key_metrics": ["年化收益率", "最大回撤", "胜率", "盈亏比", "夏普比率", "交易次数"]},
+      "reference_answer": "双均线策略在震荡市中容易产生频繁的假信号导致亏损，2023年A股整体震荡下行，该策略可能出现胜率低于50%但盈亏比尚可的情况。最大回撤可能超过15%，需结合止损机制优化。",
+      "difficulty": "hard",
+      "category": "backtesting",
+      "dimensions": ["accuracy", "reasoning", "completeness", "risk_awareness"]
+    },
+    {
+      "id": "trader_003",
+      "query": "请为一个管理规模5000万元的量化产品制定风险管理框架，包括VaR计算方法选择、压力测试场景设计、流动性风险控制措施以及极端行情下的应急预案。",
+      "context": {"product_scale": "50000000", "product_type": "量化私募", "risk_framework": ["VaR", "压力测试", "流动性管理", "应急预案"]},
+      "expected_output": {"type": "risk_management_framework", "components": ["VaR模型选择与参数设定", "压力测试场景", "流动性风控指标", "极端行情应急预案", "风控阈值设定"]},
+      "reference_answer": "VaR采用历史模拟法（250个交易日窗口），95%置信度下单日VaR不超过总资产的2%。压力测试场景包括：2015年股灾式下跌（单日跌幅超9%）、2019年贸易摩擦冲击（单周跌幅超10%）、流动性枯竭（成交量萎缩至正常水平30%）。流动性风控要求单只股票持仓不超过日均成交额的10%。极端行情预案包括自动减仓至30%以下、暂停开仓、启动对冲等。",
+      "difficulty": "expert",
+      "category": "risk_management",
+      "dimensions": ["reasoning", "completeness", "risk_awareness", "professionalism"]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "fund-data": {
+      "command": "python",
+      "args": ["-m", "finagent_eval.mcp_servers.fund_data.server"],
+      "description": "Mutual fund/ETF data, NAV, holdings, performance"
+    }
+  }
+}

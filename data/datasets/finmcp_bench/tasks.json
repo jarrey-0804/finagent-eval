@@ -1,0 +1,37 @@
+{
+  "name": "FinMCPBench",
+  "version": "1.0",
+  "description": "金融MCP工具调用基准测试",
+  "tasks": [
+    {
+      "id": "finmcp_001",
+      "query": "请调用行情查询工具获取宁德时代（300750）的最新股价、成交量及涨跌幅信息，并结合财务数据工具获取其最近一期市盈率和市净率。",
+      "context": {"stock_code": "300750", "stock_name": "宁德时代", "required_tools": ["quote_query", "fundamental_data"], "data_fields": ["price", "volume", "change_pct", "PE", "PB"]},
+      "expected_output": {"type": "tool_call_result", "components": ["行情数据", "财务指标", "数据整合分析"]},
+      "reference_answer": "通过调用quote_query工具获取宁德时代最新股价及成交量，再调用fundamental_data工具获取PE、PB等估值指标，整合展示完整的个股快照。",
+      "difficulty": "medium",
+      "category": "tool_calling",
+      "dimensions": ["accuracy", "tool_usage", "completeness"]
+    },
+    {
+      "id": "finmcp_002",
+      "query": "使用宏观经济数据工具查询中国最近三个月的CPI和PPI同比增速，再调用利率查询工具获取同期LPR报价数据，分析通胀与利率政策之间的关系。",
+      "context": {"indicators": ["CPI", "PPI", "LPR"], "period": "最近三个月", "required_tools": ["macro_data_query", "interest_rate_query"]},
+      "expected_output": {"type": "multi_tool_analysis", "components": ["CPI数据", "PPI数据", "LPR数据", "关联分析"]},
+      "reference_answer": "CPI同比增速反映消费者物价水平变化，PPI反映工业品出厂价格变化，LPR为贷款市场报价利率。当CPI、PPI持续走低时，央行可能通过下调LPR来刺激经济。",
+      "difficulty": "hard",
+      "category": "multi_tool_orchestration",
+      "dimensions": ["accuracy", "tool_usage", "reasoning", "completeness"]
+    },
+    {
+      "id": "finmcp_003",
+      "query": "请依次调用基金净值查询工具、基金持仓查询工具和基金业绩排名工具，对易方达蓝筹精选混合（005827）进行全面分析，输出基金净值走势、前十大持仓及同类排名情况。",
+      "context": {"fund_code": "005827", "fund_name": "易方达蓝筹精选混合", "required_tools": ["fund_nav_query", "fund_holdings_query", "fund_ranking_query"]},
+      "expected_output": {"type": "sequential_tool_analysis", "components": ["净值走势", "前十大持仓", "同类排名", "综合评估"]},
+      "reference_answer": "依次调用三个工具：fund_nav_query获取近期单位净值及累计净值，fund_holdings_query获取最新季报披露的前十大重仓股，fund_ranking_query获取近一年/三年同类基金排名，综合形成基金分析报告。",
+      "difficulty": "expert",
+      "category": "sequential_tool_calling",
+      "dimensions": ["accuracy", "tool_usage", "completeness", "reasoning"]
+    }
+  ]
+}

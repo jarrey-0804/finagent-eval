@@ -1,0 +1,37 @@
+{
+  "name": "StockBench",
+  "version": "1.0",
+  "description": "股票分析基准测试",
+  "tasks": [
+    {
+      "id": "stock_001",
+      "query": "请对比亚迪（002594）进行技术面分析，包括MACD、KDJ、RSI等常用技术指标的计算与解读，并给出短期走势判断。",
+      "context": {"stock_code": "002594", "stock_name": "比亚迪", "analysis_type": "technical_analysis", "indicators": ["MACD", "KDJ", "RSI", "BOLL"]},
+      "expected_output": {"type": "technical_report", "key_metrics": ["MACD_DIF", "MACD_DEA", "MACD_柱状", "KDJ_K", "KDJ_D", "KDJ_J", "RSI_6", "RSI_12", "RSI_24"]},
+      "reference_answer": "MACD方面，若DIF上穿DEA形成金叉则短期看多；KDJ方面，J值进入超买区（>80）需注意回调风险；RSI方面，6日RSI高于70为超买信号，低于30为超卖信号。综合各指标判断短期走势方向。",
+      "difficulty": "medium",
+      "category": "technical_analysis",
+      "dimensions": ["accuracy", "completeness", "reasoning"]
+    },
+    {
+      "id": "stock_002",
+      "query": "构建一个包含中国平安（601318）、招商银行（600036）、贵州茅台（600519）的投资组合，计算组合在过去一年的收益率、波动率和夏普比率，并与沪深300指数进行对比分析。",
+      "context": {"portfolio": [{"stock_code": "601318", "weight": 0.4}, {"stock_code": "600036", "weight": 0.3}, {"stock_code": "600519", "weight": 0.3}], "benchmark": "沪深300", "period": "近一年"},
+      "expected_output": {"type": "portfolio_analysis", "components": ["组合收益率", "组合波动率", "夏普比率", "基准对比", "超额收益分析"]},
+      "reference_answer": "计算各成分股过去一年的日收益率，按权重加权得到组合日收益率，进而计算年化收益率、年化波动率和夏普比率。与沪深300指数对比，评估组合是否跑赢基准。",
+      "difficulty": "hard",
+      "category": "portfolio_analysis",
+      "dimensions": ["accuracy", "reasoning", "completeness"]
+    },
+    {
+      "id": "stock_003",
+      "query": "对隆基绿能（601012）进行基本面深度分析，包括杜邦分析、自由现金流折现估值（DCF）以及与同行业公司通威股份（600438）的横向对比。",
+      "context": {"stock_code": "601012", "stock_name": "隆基绿能", "peer_stock": "600438", "peer_name": "通威股份", "analysis_methods": ["杜邦分析", "DCF估值", "同行对比"]},
+      "expected_output": {"type": "fundamental_deep_analysis", "components": ["杜邦分析三因子", "DCF估值结果", "同行财务指标对比", "投资建议"]},
+      "reference_answer": "杜邦分析将ROE拆解为净利率、资产周转率和权益乘数，评估盈利质量。DCF估值需预测未来5-10年自由现金流并选取合适折现率计算企业内在价值。与通威股份在营收增速、毛利率、负债率等维度横向比较，判断相对估值水平。",
+      "difficulty": "expert",
+      "category": "fundamental_analysis",
+      "dimensions": ["accuracy", "reasoning", "completeness", "professionalism"]
+    }
+  ]
+}

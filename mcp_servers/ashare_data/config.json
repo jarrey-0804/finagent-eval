@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ashare-data": {
+      "url": "http://localhost:8001/sse",
+      "transport": "sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_ASHARE_TOKEN_HERE"
+      },
+      "description": "Chinese A-share market data (Shanghai/Shenzhen exchanges)"
+    }
+  }
+}

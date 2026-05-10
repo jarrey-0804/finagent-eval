@@ -1,0 +1,43 @@
+# =============================================================================
+# Prometheus Scrape Configuration for finagent-eval
+# =============================================================================
+# Metrics endpoint: http://localhost:8000/metrics
+# Collected metrics:
+#   - finagent_evaluations_total (counter, labels: agent_id, mode)
+#   - finagent_evaluations_completed_total (counter, labels: agent_id, mode, status)
+#   - finagent_evaluations_active (gauge)
+#   - finagent_evaluation_duration_seconds (summary, labels: agent_id, mode)
+#   - finagent_llm_calls_total (counter, labels: model)
+#   - finagent_llm_latency_ms (summary, labels: model)
+#   - finagent_llm_tokens_total (counter, labels: model)
+#   - finagent_llm_cost_usd_total (counter, labels: model)
+#   - finagent_mcp_tool_calls_total (counter, labels: server, tool, status)
+#   - finagent_mcp_server_up (gauge, labels: server)
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: finagent-eval
+    environment: production
+
+scrape_configs:
+  - job_name: "finagent-eval-api"
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: http
+
+    static_configs:
+      - targets:
+          - "localhost:8000"
+        labels:
+          component: api
+          service: finagent-eval
+
+    # Relabel scrape timestamp for accurate duration calculations
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "finagent-eval:8000"
