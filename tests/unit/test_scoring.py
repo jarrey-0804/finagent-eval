@@ -31,7 +31,7 @@ def sample_response():
     return EvalResponse(
         task_id="task_001",
         output="贵州茅台（600519）2024年第三季度实现营业收入388.45亿元，同比增长15.2%。净利润为193.5亿元，毛利率为91.5%。从财务指标来看，公司保持了良好的增长态势。",
-        tool_calls=[{"name": "get_financial_data", "args": {"symbol": "600519"}, "success": True}],
+        tool_calls=[{"tool_name": "get_financial_data", "args": {"symbol": "600519"}, "success": True}],
     )
 
 
@@ -56,7 +56,8 @@ class TestAccuracyMetric:
     def test_empty_response(self, sample_task):
         """测试空响应的评分 - 验证空输出返回低分"""
         metric = AccuracyMetric()
-        response = EvalResponse(task_id="task_001", output="")
+        # 使用错误字段来创建"空"响应
+        response = EvalResponse(task_id="task_001", output="", error="empty response")
         score, confidence, evidence, reasoning = metric.compute(sample_task, response)
         assert score == 0.0
 

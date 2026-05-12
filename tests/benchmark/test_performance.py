@@ -118,8 +118,8 @@ def _make_rule_task_and_response(index: int):
             "建议关注市场风险，投资需谨慎。"
         ),
         tool_calls=[
-            {"name": "get_financial", "args": {"symbol": "600519"}, "success": True},
-            {"name": "get_market_data", "args": {"period": "1y"}, "success": True},
+            {"tool_name": "get_financial", "args": {"symbol": "600519"}, "success": True},
+            {"tool_name": "get_market_data", "args": {"period": "1y"}, "success": True},
         ],
     )
     return task, response

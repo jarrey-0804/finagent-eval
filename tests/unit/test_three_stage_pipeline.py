@@ -57,7 +57,7 @@ class MockAgent:
             agent_name="test_agent",
             agent_type=AgentType.FINANCIAL_ANALYSIS,
             version="1.0.0",
-            framework="test",
+            framework="custom",
             llm_backend="test-llm",
         )
 

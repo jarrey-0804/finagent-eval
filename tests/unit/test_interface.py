@@ -21,7 +21,7 @@ class TestModels:
         config = AgentConfig(
             agent_name="Test Agent",
             agent_type=AgentType.INVESTMENT_DECISION,
-            version="1.0",
+            version="1.0.0",
             framework="langgraph",
             llm_backend="gpt-4o",
         )
@@ -44,7 +44,7 @@ class TestModels:
         response = EvalResponse(
             task_id="task_001",
             output="贵州茅台2024年Q3营收...",
-            tool_calls=[{"name": "get_financial_data", "args": {"symbol": "600519"}}],
+            tool_calls=[{"tool_name": "get_financial_data", "args": {"symbol": "600519"}}],
         )
         assert response.task_id == "task_001"
         assert response.output is not None
@@ -52,9 +52,10 @@ class TestModels:
 
     def test_eval_response_has_error_field(self):
         """测试EvalResponse有error字段且默认为None"""
+        # 需要提供有效输出或错误才能创建
         response = EvalResponse(
             task_id="task_001",
-            output="",
+            output="test output",
         )
         assert response.error is None
         response_with_error = EvalResponse(

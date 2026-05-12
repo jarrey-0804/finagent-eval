@@ -72,7 +72,7 @@ def _run_single_evaluation(
                 "净利润率22.5%，ROE为18.5%。投资有风险，请谨慎决策。"
             ),
             tool_calls=[
-                {"name": "get_financial", "args": {"symbol": "600519"}, "success": True},
+                {"tool_name": "get_financial", "args": {"symbol": "600519"}, "success": True},
             ],
         ))
 
@@ -266,7 +266,7 @@ class TestStressConcurrentScoring:
                 responses.append(EvalResponse(
                     task_id=task.task_id,
                     output="根据分析，该股票基本面良好。ROE为18.5%。投资有风险。",
-                    tool_calls=[{"name": "get_data", "args": {}, "success": True}],
+                    tool_calls=[{"tool_name": "get_data", "args": {}, "success": True}],
                 ))
 
             start = time.perf_counter()
@@ -491,7 +491,7 @@ class TestStressVetoConcurrency:
                 task_id=f"veto_concurrent_{idx}",
                 task_type=TaskType.KNOWLEDGE_QA,
                 dimension=EvalDimension.COMPLIANCE,
-                input_data={"query": "测试查询"},
+                input_data={"query": "这是一个测试查询"},
             )
             response = EvalResponse(
                 task_id=task.task_id,

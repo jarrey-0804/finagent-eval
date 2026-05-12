@@ -4,10 +4,12 @@ API数据模型模块
 提供REST API的请求和响应数据模型。
 """
 
+import re
 from datetime import datetime
 from typing import Any
+from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # ============ 评测相关模型 ============
 
@@ -21,6 +23,71 @@ class EvaluationRequest(BaseModel):
     task_count: int | None = Field(None, description="任务数量")
     endpoint_url: str | None = Field(None, description="Agent HTTP端点URL")
     headers: dict | None = Field(None, description="HTTP请求头")
+
+    @field_validator('agent_id')
+    @classmethod
+    def validate_agent_id(cls, v: str) -> str:
+        """验证 Agent ID"""
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Agent ID 不能为空')
+        if len(v) > 128:
+            raise ValueError('Agent ID 长度不能超过 128 字符')
+        if not re.match(r'^[a-zA-Z0-9_\-\.]+$', v):
+            raise ValueError('Agent ID 只能包含字母、数字、下划线、连字符和点')
+        return v.strip()
+
+    @field_validator('eval_mode')
+    @classmethod
+    def validate_eval_mode(cls, v: str) -> str:
+        """验证评测模式"""
+        valid_modes = {'quick', 'full'}
+        if v not in valid_modes:
+            raise ValueError(f'评测模式必须是以下之一: {valid_modes}')
+        return v
+
+    @field_validator('endpoint_url')
+    @classmethod
+    def validate_endpoint_url(cls, v: str | None) -> str | None:
+        """验证 HTTP 端点 URL"""
+        if v is None:
+            return v
+        if len(v) > 2048:
+            raise ValueError('URL 长度不能超过 2048 字符')
+        try:
+            parsed = urlparse(v)
+            if not parsed.scheme or parsed.scheme not in ('http', 'https'):
+                raise ValueError('URL 必须使用 http 或 https 协议')
+            if not parsed.netloc:
+                raise ValueError('URL 必须包含主机名')
+        except Exception as e:
+            raise ValueError(f'无效的 URL 格式: {e}')
+        return v
+
+    @field_validator('task_count')
+    @classmethod
+    def validate_task_count(cls, v: int | None) -> int | None:
+        """验证任务数量"""
+        if v is None:
+            return v
+        if v < 1:
+            raise ValueError('任务数量必须大于 0')
+        if v > 1000:
+            raise ValueError('任务数量不能超过 1000')
+        return v
+
+    @field_validator('headers')
+    @classmethod
+    def validate_headers(cls, v: dict | None) -> dict | None:
+        """验证 HTTP 请求头"""
+        if v is None:
+            return v
+        # 检查是否包含敏感信息
+        sensitive_keys = {'authorization', 'x-api-key', 'api-key', 'token', 'password'}
+        for key in v.keys():
+            if key.lower() in sensitive_keys:
+                # 允许存在，但记录警告（实际实现中）
+                pass
+        return v
 
 
 class EvaluationResponse(BaseModel):
@@ -64,6 +131,46 @@ class AgentRegistrationRequest(BaseModel):
     description: str | None = Field(None, description="Agent描述")
     endpoint_url: str | None = Field(None, description="HTTP端点URL")
     config: dict = Field(default_factory=dict, description="Agent配置")
+
+    @field_validator('agent_id')
+    @classmethod
+    def validate_agent_id(cls, v: str) -> str:
+        """验证 Agent ID"""
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Agent ID 不能为空')
+        if len(v) > 128:
+            raise ValueError('Agent ID 长度不能超过 128 字符')
+        if not re.match(r'^[a-zA-Z0-9_\-\.]+$', v):
+            raise ValueError('Agent ID 只能包含字母、数字、下划线、连字符和点')
+        return v.strip()
+
+    @field_validator('agent_name')
+    @classmethod
+    def validate_agent_name(cls, v: str) -> str:
+        """验证 Agent 名称"""
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Agent 名称不能为空')
+        if len(v) > 128:
+            raise ValueError('Agent 名称长度不能超过 128 字符')
+        return v.strip()
+
+    @field_validator('endpoint_url')
+    @classmethod
+    def validate_endpoint_url(cls, v: str | None) -> str | None:
+        """验证 HTTP 端点 URL"""
+        if v is None:
+            return v
+        if len(v) > 2048:
+            raise ValueError('URL 长度不能超过 2048 字符')
+        try:
+            parsed = urlparse(v)
+            if not parsed.scheme or parsed.scheme not in ('http', 'https'):
+                raise ValueError('URL 必须使用 http 或 https 协议')
+            if not parsed.netloc:
+                raise ValueError('URL 必须包含主机名')
+        except Exception as e:
+            raise ValueError(f'无效的 URL 格式: {e}')
+        return v
 
 
 class AgentInfo(BaseModel):

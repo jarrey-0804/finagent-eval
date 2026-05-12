@@ -378,7 +378,7 @@ class TestScorerNode:
         node = ScorerNode(engine)
         state = _make_pipeline_state(
             tasks=[_make_serialized_task()],
-            responses=[{"task_id": "task-001", "output": "", "tool_calls": [], "error": None}],
+            responses=[{"task_id": "task-001", "output": "", "tool_calls": [], "error": "veto test"}],
         )
 
         mock_task = MagicMock()

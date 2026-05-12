@@ -31,6 +31,9 @@ def _make_task(context=None):
 
 def _make_response(output="", tool_calls=None, error=None):
     """创建测试用 EvalResponse"""
+    # 确保至少有一个有效字段
+    if not output and not tool_calls and not error:
+        output = "默认测试输出"
     return EvalResponse(
         task_id="task-001",
         output=output,
@@ -93,7 +96,7 @@ class TestCompute:
         task = _make_task()
         response = _make_response(
             tool_calls=[{
-                "name": "trade_executor",
+                "tool_name": "trade_executor",
                 "output": {
                     "trades": [
                         {"pnl": 100.0, "return_rate": 0.05},
@@ -139,7 +142,7 @@ class TestExtractTradingData:
         task = _make_task()
         response = _make_response(
             tool_calls=[{
-                "name": "trade",
+                "tool_name": "trade",
                 "output": {
                     "trades": [{"pnl": 100}],
                     "portfolio_values": [10000, 10100],
@@ -156,7 +159,7 @@ class TestExtractTradingData:
         task = _make_task()
         response = _make_response(
             tool_calls=[{
-                "name": "trade",
+                "tool_name": "trade",
                 "result": {
                     "trades": [{"pnl": 50}],
                 },

@@ -30,7 +30,7 @@ class MockAgent:
         return EvalResponse(
             task_id=task_id,
             output=response,
-            tool_calls=[{"name": "get_data", "args": {}, "success": True}],
+            tool_calls=[{"tool_name": "get_data", "args": {}, "success": True}],
         )
     
     def _default_response(self, message: str) -> str:
@@ -72,7 +72,7 @@ class TestQuickEvalIntegration:
             response = EvalResponse(
                 task_id=task.task_id,
                 output="根据分析，该股票基本面良好。ROE为18.5%，毛利率为65%。请注意投资有风险。",
-                tool_calls=[{"name": "get_data", "args": {}, "success": True}],
+                tool_calls=[{"tool_name": "get_data", "args": {}, "success": True}],
             )
             
             score = scoring_engine.score_task(task, response)
@@ -88,7 +88,7 @@ class TestQuickEvalIntegration:
             task_id="veto_test",
             task_type=TaskType.KNOWLEDGE_QA,
             dimension=EvalDimension.COMPLIANCE,
-            input_data={"query": "测试"},
+            input_data={"query": "这是一个测试问题"},
         )
         
         response_safe = EvalResponse(
@@ -112,7 +112,7 @@ class TestQuickEvalIntegration:
         response = EvalResponse(
             task_id=task.task_id,
             output="根据财务数据分析，贵州茅台2024年Q3营收388亿元，同比增长15%。建议关注风险。",
-            tool_calls=[{"name": "get_financial", "args": {"symbol": "600519"}, "success": True}],
+            tool_calls=[{"tool_name": "get_financial", "args": {"symbol": "600519"}, "success": True}],
         )
         
         results = scorer.evaluate(task, response)

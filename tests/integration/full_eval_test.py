@@ -43,15 +43,15 @@ class TestFullEvalIntegration:
             task_id="test",
             task_type=TaskType.KNOWLEDGE_QA,
             dimension="compliance",
-            input_data={"query": "测试"},
+            input_data={"query": "这是一个测试问题"},
         )
         
         # 条件1: 合规性否决
-        r1 = checker.conditions[0].check(task, EvalResponse(task_id="test", output=""), {"compliance": 20.0})
+        r1 = checker.conditions[0].check(task, EvalResponse(task_id="test", output="", error="veto test"), {"compliance": 20.0})
         assert r1.vetoed is True
         
         # 条件2: 安全性否决
-        r2 = checker.conditions[1].check(task, EvalResponse(task_id="test", output=""), {"security": 20.0})
+        r2 = checker.conditions[1].check(task, EvalResponse(task_id="test", output="", error="veto test"), {"security": 20.0})
         assert r2.vetoed is True
         
         # 条件3: 内幕交易否决
