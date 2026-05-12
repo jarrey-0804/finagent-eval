@@ -1,0 +1,104 @@
+# FinAgent-Eval 数据质量告警规则
+# 对应数据质量治理方案 - 阶段 2
+#
+# 使用方式:
+#   1. Prometheus: 在 prometheus.yml 中添加 rule_files 指向此文件
+#   2. Alertmanager: 配置通知渠道（邮件/Slack/企业微信等）
+
+groups:
+  - name: finagent_data_quality
+    rules:
+      # ---- 综合评分告警 ----
+
+      - alert: DataQualityScoreLow
+        expr: finagent_data_quality_overall_score < 0.6
+        for: 5m
+        labels:
+          severity: critical
+          team: finagent
+        annotations:
+          summary: "数据质量综合评分过低 (当前: {{ $value | humanizePercentage }})"
+          description: "数据质量综合评分持续 5 分钟低于 60%，请立即检查数据源和采集流程。"
+          runbook_url: "https://github.com/jarrey-0804/finagent-eval/docs/runbook-data-quality.md"
+
+      - alert: DataQualityScoreWarning
+        expr: finagent_data_quality_overall_score < 0.8 and finagent_data_quality_overall_score >= 0.6
+        for: 10m
+        labels:
+          severity: warning
+          team: finagent
+        annotations:
+          summary: "数据质量综合评分偏低 (当前: {{ $value | humanizePercentage }})"
+          description: "数据质量综合评分持续 10 分钟低于 80%，建议排查数据质量问题。"
+
+      # ---- 维度评分告警 ----
+
+      - alert: DataCompletenessLow
+        expr: finagent_data_quality_dimension_score{dimension="completeness"} < 0.9
+        for: 10m
+        labels:
+          severity: warning
+          team: finagent
+        annotations:
+          summary: "数据完整性不足 (当前: {{ $value | humanizePercentage }})"
+          description: "评测任务数据字段缺失率超过 10%，请检查数据源是否正常。"
+
+      - alert: DataValidityLow
+        expr: finagent_data_quality_dimension_score{dimension="validity"} < 0.85
+        for: 10m
+        labels:
+          severity: warning
+          team: finagent
+        annotations:
+          summary: "数据有效性偏低 (当前: {{ $value | humanizePercentage }})"
+          description: "Agent 响应有效率低于 85%，请检查 Agent 服务状态。"
+
+      - alert: DataTimelinessLow
+        expr: finagent_data_quality_dimension_score{dimension="timeliness"} < 0.9
+        for: 15m
+        labels:
+          severity: warning
+          team: finagent
+        annotations:
+          summary: "数据时效性不足 (当前: {{ $value | humanizePercentage }})"
+          description: "响应延迟过高，请检查 Agent 和外部数据源性能。"
+
+      # ---- 验证错误告警 ----
+
+      - alert: DataValidationErrorsHigh
+        expr: increase(finagent_data_quality_validation_errors[15m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          team: finagent
+        annotations:
+          summary: "数据验证错误激增 (15分钟内: {{ $value }} 个)"
+          description: "近期数据验证错误数量异常增长，请检查数据格式和采集逻辑。"
+
+      # ---- 响应状态告警 ----
+
+      - alert: AgentErrorRateHigh
+        expr: >
+          sum(rate(finagent_data_quality_response_count{status="error"}[5m]))
+          / sum(rate(finagent_data_quality_response_count[5m]))
+          > 0.2
+        for: 5m
+        labels:
+          severity: critical
+          team: finagent
+        annotations:
+          summary: "Agent 错误率过高 (当前: {{ $value | humanizePercentage }})"
+          description: "Agent 错误率超过 20%，请检查 Agent 服务和外部依赖。"
+
+      - alert: EmptyResponseRateHigh
+        expr: >
+          sum(rate(finagent_data_quality_response_count{status="empty"}[5m]))
+          / sum(rate(finagent_data_quality_response_count[5m]))
+          > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          team: finagent
+        annotations:
+          summary: "空响应率过高 (当前: {{ $value | humanizePercentage }})"
+          description: "Agent 空响应率超过 10%，请检查 Agent 配置和提示词。"
