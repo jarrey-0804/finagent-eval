@@ -93,23 +93,20 @@ class TradingPerformanceMetric(BaseMetric):
         """
         从 response.tool_calls 或 response.output 中提取交易数据。
 
-        期望的数据结构（任一来源）::
-
-            {
-                "trades": [
-                    {"pnl": 100.0, "return_rate": 0.05},
-                    {"pnl": -50.0, "return_rate": -0.025},
-                    ...
-                ],
-                "portfolio_values": [10000, 10200, 10100, 10500, ...],
-                "initial_value": 10000,
-                "final_value": 10500,
-            }
+        依次尝试从 tool_calls、output 文本、task context 提取。
 
         Returns:
             提取到的交易数据字典，或 None。
         """
-        # 优先从 tool_calls 中提取
+        result = self._extract_from_tool_calls(response)
+        if result is None:
+            result = self._extract_from_output(response.output or "")
+        if result is None:
+            result = self._extract_from_context(task)
+        return result
+
+    def _extract_from_tool_calls(self, response: EvalResponse) -> dict | None:
+        """从 response.tool_calls 中提取交易数据。"""
         if response.tool_calls:
             for tc in response.tool_calls:
                 result = tc.get("output") or tc.get("result") or {}
@@ -117,30 +114,32 @@ class TradingPerformanceMetric(BaseMetric):
                     result.get("trades") or result.get("portfolio_values")
                 ):
                     return result
+        return None
 
-        # 其次从 output 中尝试解析 JSON
-        output = response.output or ""
-        if output:
-            import json
-            import re
+    def _extract_from_output(self, output: str) -> dict | None:
+        """从 output 文本中尝试解析 JSON 提取交易数据。"""
+        if not output:
+            return None
+        import json
+        import re
 
-            # 尝试在输出中找到 JSON 块
-            json_blocks = re.findall(r"\{[^{}]*\}", output)
-            for block in json_blocks:
-                try:
-                    data = json.loads(block)
-                    if isinstance(data, dict) and (
-                        data.get("trades") or data.get("portfolio_values")
-                    ):
-                        return data
-                except (json.JSONDecodeError, ValueError):
-                    continue
+        json_blocks = re.findall(r"\{[^{}]*\}", output)
+        for block in json_blocks:
+            try:
+                data = json.loads(block)
+                if isinstance(data, dict) and (
+                    data.get("trades") or data.get("portfolio_values")
+                ):
+                    return data
+            except (json.JSONDecodeError, ValueError):
+                continue
+        return None
 
-        # 最后从 task context 中查找
+    def _extract_from_context(self, task: EvalTask) -> dict | None:
+        """从 task context 中查找交易数据。"""
         context = task.context or {}
         if context.get("trades") or context.get("portfolio_values"):
             return context
-
         return None
 
     # ------------------------------------------------------------------
@@ -270,57 +269,64 @@ class TradingPerformanceMetric(BaseMetric):
         - MDD: <10% 优秀，<20% 良好，>30% 差
         - WinRate: >60% 优秀，>50% 良好，<40% 差
         """
-        score = 50.0  # 基础分
-
-        # CR 评分 (权重 25%)
-        if cr > 20:
-            score += 15
-        elif cr > 10:
-            score += 10
-        elif cr > 0:
-            score += 5
-        elif cr > -10:
-            score -= 5
-        else:
-            score -= 15
-
-        # SR 评分 (权重 25%)
-        if sr > 2.0:
-            score += 15
-        elif sr > 1.0:
-            score += 10
-        elif sr > 0.5:
-            score += 5
-        elif sr > 0:
-            score += 0
-        else:
-            score -= 10
-
-        # MDD 评分 (权重 25%)
-        if mdd < 5:
-            score += 10
-        elif mdd < 10:
-            score += 5
-        elif mdd < 20:
-            score += 0
-        elif mdd < 30:
-            score -= 5
-        else:
-            score -= 15
-
-        # WinRate 评分 (权重 25%)
-        if win_rate > 70:
-            score += 10
-        elif win_rate > 60:
-            score += 5
-        elif win_rate > 50:
-            score += 0
-        elif win_rate > 40:
-            score -= 5
-        else:
-            score -= 10
-
+        score = 50.0
+        score += self._score_cr(cr)
+        score += self._score_sr(sr)
+        score += self._score_mdd(mdd)
+        score += self._score_win_rate(win_rate)
         return max(0.0, min(100.0, score))
+
+    def _score_cr(self, cr: float) -> float:
+        """CR 评分 (权重 25%)"""
+        if cr > 20:
+            return 15
+        elif cr > 10:
+            return 10
+        elif cr > 0:
+            return 5
+        elif cr > -10:
+            return -5
+        else:
+            return -15
+
+    def _score_sr(self, sr: float) -> float:
+        """SR 评分 (权重 25%)"""
+        if sr > 2.0:
+            return 15
+        elif sr > 1.0:
+            return 10
+        elif sr > 0.5:
+            return 5
+        elif sr > 0:
+            return 0
+        else:
+            return -10
+
+    def _score_mdd(self, mdd: float) -> float:
+        """MDD 评分 (权重 25%)"""
+        if mdd < 5:
+            return 10
+        elif mdd < 10:
+            return 5
+        elif mdd < 20:
+            return 0
+        elif mdd < 30:
+            return -5
+        else:
+            return -15
+
+    def _score_win_rate(self, win_rate: float) -> float:
+        """WinRate 评分 (权重 25%)"""
+        if win_rate > 70:
+            return 10
+        elif win_rate > 60:
+            return 5
+        elif win_rate > 50:
+            return 0
+        elif win_rate > 40:
+            return -5
+        else:
+            return -10
 
     def _calc_confidence(self, data: dict) -> float:
         """根据数据完整度计算置信度"""

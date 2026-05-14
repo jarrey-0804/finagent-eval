@@ -1522,7 +1522,27 @@ class ThreeStagePipeline:
                 veto_count=0,
             )
 
-        # 收集维度分数
+        dimension_averages = self._aggregate_dimension_scores(all_task_scores)
+        overall_score = self._aggregate_overall_score(all_task_scores)
+        overall_rating = self.scoring_engine.rater.rate(overall_score)
+
+        total_tasks, passed_tasks, veto_count = self._build_phase_summary(all_task_scores)
+
+        return EvaluationScore(
+            agent_id=self.state["agent_id"],
+            task_scores=all_task_scores,
+            dimension_averages=dimension_averages,
+            overall_score=overall_score,
+            overall_rating=overall_rating,
+            total_tasks=total_tasks,
+            passed_tasks=passed_tasks,
+            veto_count=veto_count,
+        )
+
+    def _aggregate_dimension_scores(
+        self, all_task_scores: list[TaskScore]
+    ) -> dict[EvalDimension, float]:
+        """聚合各维度的平均分数。"""
         import statistics
 
         dimension_scores_map: dict[EvalDimension, list[float]] = {dim: [] for dim in EvalDimension}
@@ -1535,10 +1555,19 @@ class ThreeStagePipeline:
             if scores:
                 dimension_averages[dim] = statistics.mean(scores)
 
-        overall_scores = [ts.overall_score for ts in all_task_scores]
-        overall_score = statistics.mean(overall_scores) if overall_scores else 0.0
-        overall_rating = self.scoring_engine.rater.rate(overall_score)
+        return dimension_averages
 
+    def _aggregate_overall_score(self, all_task_scores: list[TaskScore]) -> float:
+        """计算所有任务的总平均分。"""
+        import statistics
+
+        overall_scores = [ts.overall_score for ts in all_task_scores]
+        return statistics.mean(overall_scores) if overall_scores else 0.0
+
+    def _build_phase_summary(
+        self, all_task_scores: list[TaskScore]
+    ) -> tuple[int, int, int]:
+        """构建阶段摘要统计：返回 (total_tasks, passed_tasks, veto_count)。"""
         total_tasks = len(all_task_scores)
         passed_tasks = sum(
             1
@@ -1547,17 +1576,7 @@ class ThreeStagePipeline:
             and not ts.veto_triggered
         )
         veto_count = sum(1 for ts in all_task_scores if ts.veto_triggered)
-
-        return EvaluationScore(
-            agent_id=self.state["agent_id"],
-            task_scores=all_task_scores,
-            dimension_averages=dimension_averages,
-            overall_score=overall_score,
-            overall_rating=overall_rating,
-            total_tasks=total_tasks,
-            passed_tasks=passed_tasks,
-            veto_count=veto_count,
-        )
+        return total_tasks, passed_tasks, veto_count
 
     def _generate_three_stage_report(self, evaluation_score: EvaluationScore) -> dict:
         """生成三阶段评测报告，包含各阶段的独立分析"""
