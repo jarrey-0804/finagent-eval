@@ -12,6 +12,7 @@ from dataclasses import dataclass
 @dataclass
 class ChartConfig:
     """图表配置"""
+
     width: int = 800
     height: int = 600
     title: str = ""
@@ -20,8 +21,12 @@ class ChartConfig:
     def __post_init__(self):
         if self.colors is None:
             self.colors = [
-                "#16213e", "#0f3460", "#e94560",
-                "#533483", "#2b2e4a", "#8d99ae",
+                "#16213e",
+                "#0f3460",
+                "#e94560",
+                "#533483",
+                "#2b2e4a",
+                "#8d99ae",
             ]
 
 
@@ -128,12 +133,12 @@ class RadarChart(ChartRenderer):
             labels_svg += (
                 f'<text x="{lx:.2f}" y="{ly + dy:.2f}" '
                 f'text-anchor="{anchor}" font-size="12">'
-                f'{label}: {score_text}</text>'
+                f"{label}: {score_text}</text>"
             )
 
         return f"""<svg width="600" height="600" xmlns="http://www.w3.org/2000/svg">
     <rect width="600" height="600" fill="white"/>
-    <text x="300" y="30" text-anchor="middle" font-size="18" font-weight="bold">{self.config.title or '维度评分雷达图'}</text>
+    <text x="300" y="30" text-anchor="middle" font-size="18" font-weight="bold">{self.config.title or "维度评分雷达图"}</text>
     {grid_lines}
     {axis_lines}
     <polygon points="{data_polygon}" fill="rgba(233,69,96,0.3)" stroke="#e94560" stroke-width="2"/>
@@ -167,7 +172,7 @@ class ScoreBarChart(ChartRenderer):
                 </div>"""
 
         return f"""<div class="bar-chart" style="width: {self.config.width}px;">
-            <h3>{self.config.title or '评分分布'}</h3>
+            <h3>{self.config.title or "评分分布"}</h3>
             {bars_html}
             <style>
                 .bar-row {{ display: flex; align-items: center; margin: 5px 0; }}
@@ -180,9 +185,12 @@ class ScoreBarChart(ChartRenderer):
 
     def _score_color(self, score: float) -> str:
         """根据分数返回颜色"""
-        if score >= 85: return "#28a745"  # 绿色
-        if score >= 70: return "#17a2b8"  # 蓝色
-        if score >= 60: return "#ffc107"  # 黄色
+        if score >= 85:
+            return "#28a745"  # 绿色
+        if score >= 70:
+            return "#17a2b8"  # 蓝色
+        if score >= 60:
+            return "#ffc107"  # 黄色
         return "#dc3545"  # 红色
 
 
@@ -231,9 +239,7 @@ class NetValueChart(ChartRenderer):
         # 基准线
         benchmark_path = ""
         if benchmark:
-            benchmark_path = " ".join(
-                f"M {to_x(i)} {to_y(v)}" for i, v in enumerate(benchmark)
-            )
+            benchmark_path = " ".join(f"M {to_x(i)} {to_y(v)}" for i, v in enumerate(benchmark))
 
         # X轴标签
         x_labels = ""
@@ -241,13 +247,17 @@ class NetValueChart(ChartRenderer):
         for i in range(0, n, step):
             x = to_x(i)
             y = height - padding + 20
-            x_labels += f'<text x="{x}" y="{y}" text-anchor="middle" font-size="10">{dates[i]}</text>'
+            x_labels += (
+                f'<text x="{x}" y="{y}" text-anchor="middle" font-size="10">{dates[i]}</text>'
+            )
 
         # Y轴标签
         y_labels = ""
         for v in [min_val, (min_val + max_val) / 2, max_val]:
             y = to_y(v)
-            y_labels += f'<text x="{padding - 10}" y="{y}" text-anchor="end" font-size="10">{v:.2f}</text>'
+            y_labels += (
+                f'<text x="{padding - 10}" y="{y}" text-anchor="end" font-size="10">{v:.2f}</text>'
+            )
             y_labels += f'<line x1="{padding}" y1="{y}" x2="{width - padding}" y2="{y}" stroke="#eee" stroke-width="1"/>'
 
         benchmark_line = ""
@@ -256,7 +266,7 @@ class NetValueChart(ChartRenderer):
 
         return f"""<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
     <rect width="{width}" height="{height}" fill="white"/>
-    <text x="{width/2}" y="25" text-anchor="middle" font-size="16" font-weight="bold">{self.config.title or '净值曲线'}</text>
+    <text x="{width / 2}" y="25" text-anchor="middle" font-size="16" font-weight="bold">{self.config.title or "净值曲线"}</text>
     {y_labels}
     {x_labels}
     {benchmark_line}

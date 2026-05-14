@@ -77,9 +77,7 @@ class AdapterRegistry:
             cls._factories[framework] = factory
         elif adapter_class is not None:
             if not issubclass(adapter_class, FinancialAgentInterface):
-                raise ValueError(
-                    "Adapter class must be a subclass of FinancialAgentInterface"
-                )
+                raise ValueError("Adapter class must be a subclass of FinancialAgentInterface")
             cls._adapters[framework] = adapter_class
         else:
             raise ValueError("Either adapter_class or factory must be provided")

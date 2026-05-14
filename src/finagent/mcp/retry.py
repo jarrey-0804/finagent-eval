@@ -7,9 +7,10 @@
 
 import asyncio
 import random
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, TypeVar, Any
 from functools import wraps
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
@@ -17,17 +18,19 @@ T = TypeVar("T")
 @dataclass
 class RetryConfig:
     """重试配置"""
-    max_attempts: int = 3           # 最大尝试次数
-    base_delay: float = 1.0         # 基础延迟（秒）
-    max_delay: float = 60.0         # 最大延迟（秒）
-    exponential_base: float = 2.0   # 指数基数
-    jitter: bool = True             # 是否添加随机抖动
-    jitter_max: float = 1.0         # 最大抖动（秒）
+
+    max_attempts: int = 3  # 最大尝试次数
+    base_delay: float = 1.0  # 基础延迟（秒）
+    max_delay: float = 60.0  # 最大延迟（秒）
+    exponential_base: float = 2.0  # 指数基数
+    jitter: bool = True  # 是否添加随机抖动
+    jitter_max: float = 1.0  # 最大抖动（秒）
     retryable_exceptions: tuple[type[Exception], ...] = (Exception,)  # 可重试的异常类型
 
 
 class RetryExhaustedError(Exception):
     """重试次数耗尽错误"""
+
     def __init__(self, attempts: int, last_exception: Exception | None = None):
         self.attempts = attempts
         self.last_exception = last_exception
@@ -50,15 +53,12 @@ class RetryHandler:
         使用指数退避算法：delay = min(base_delay * (base ^ attempt), max_delay)
         可选添加随机抖动避免惊群效应
         """
-        delay = self.config.base_delay * (self.config.exponential_base ** attempt)
+        delay = self.config.base_delay * (self.config.exponential_base**attempt)
         delay = min(delay, self.config.max_delay)
 
         if self.config.jitter:
             # 添加随机抖动 [-jitter_max/2, jitter_max/2]
-            jitter = random.uniform(
-                -self.config.jitter_max / 2,
-                self.config.jitter_max / 2
-            )
+            jitter = random.uniform(-self.config.jitter_max / 2, self.config.jitter_max / 2)
             delay = max(0, delay + jitter)
 
         return delay
@@ -132,6 +132,7 @@ class RetryHandler:
                             pass
 
                     import time
+
                     time.sleep(delay)
 
         raise RetryExhaustedError(self.config.max_attempts, last_exception)

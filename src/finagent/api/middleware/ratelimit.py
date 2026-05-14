@@ -12,15 +12,17 @@ from dataclasses import dataclass
 @dataclass
 class RateLimitConfig:
     """限流配置"""
-    max_requests: int = 100          # 时间窗口内最大请求数
-    window_seconds: int = 60         # 时间窗口(秒)
-    burst_size: int = 10             # 突发请求数
-    key_func: str = "ip"             # 限流键: ip | user_id | endpoint
+
+    max_requests: int = 100  # 时间窗口内最大请求数
+    window_seconds: int = 60  # 时间窗口(秒)
+    burst_size: int = 10  # 突发请求数
+    key_func: str = "ip"  # 限流键: ip | user_id | endpoint
 
 
 @dataclass
 class RateLimitResult:
     """限流结果"""
+
     allowed: bool
     remaining: int
     reset_at: float
@@ -58,10 +60,7 @@ class RateLimitMiddleware:
         window_start = now - self.config.window_seconds
 
         # 清理过期记录
-        self._windows[key] = [
-            t for t in self._windows[key]
-            if t > window_start
-        ]
+        self._windows[key] = [t for t in self._windows[key] if t > window_start]
 
         current_count = len(self._windows[key])
 
@@ -102,14 +101,17 @@ class RateLimitMiddleware:
             "requests_in_window": len(active),
             "max_requests": self.config.max_requests,
             "window_seconds": self.config.window_seconds,
-            "utilization": len(active) / self.config.max_requests if self.config.max_requests > 0 else 0,
+            "utilization": len(active) / self.config.max_requests
+            if self.config.max_requests > 0
+            else 0,
         }
 
     def cleanup(self, max_age: float = 3600):
         """清理过期数据"""
         now = time.time()
         expired_keys = [
-            key for key, timestamps in self._windows.items()
+            key
+            for key, timestamps in self._windows.items()
             if not timestamps or timestamps[-1] < now - max_age
         ]
         for key in expired_keys:

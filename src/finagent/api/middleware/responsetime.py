@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ResponseTimeConfig:
     """响应时间监控配置"""
+
     # 超时限制（毫秒）
     timeout_ms: float = 5000.0  # 单请求硬超时 5s
 
@@ -45,14 +46,22 @@ class ResponseTimeConfig:
     slow_request_threshold_ms: float = 300.0
 
     # 豁免路径（不进行超时限制的路径，如健康检查）
-    exempt_paths: list[str] = field(default_factory=lambda: [
-        "/health", "/live", "/ready", "/docs", "/openapi.json", "/metrics",
-    ])
+    exempt_paths: list[str] = field(
+        default_factory=lambda: [
+            "/health",
+            "/live",
+            "/ready",
+            "/docs",
+            "/openapi.json",
+            "/metrics",
+        ]
+    )
 
 
 @dataclass
 class ResponseTimeStats:
     """响应时间统计"""
+
     count: int = 0
     total_ms: float = 0.0
     min_ms: float = 0.0
@@ -101,12 +110,12 @@ class ResponseTimeTracker:
         window = self._windows[path]
         window.append(elapsed_ms)
         if len(window) > self.config.window_size:
-            self._windows[path] = window[-self.config.window_size:]
+            self._windows[path] = window[-self.config.window_size :]
 
         # 更新全局窗口
         self._global_window.append(elapsed_ms)
         if len(self._global_window) > self.config.window_size:
-            self._global_window = self._global_window[-self.config.window_size:]
+            self._global_window = self._global_window[-self.config.window_size :]
 
         if is_timeout:
             self._timeout_count += 1
@@ -116,7 +125,9 @@ class ResponseTimeTracker:
             if self.config.enable_slow_log:
                 logger.warning(
                     "慢请求检测: path=%s, elapsed=%.1fms, threshold=%.0fms",
-                    path, elapsed_ms, self.config.slow_request_threshold_ms,
+                    path,
+                    elapsed_ms,
+                    self.config.slow_request_threshold_ms,
                 )
 
     def get_stats(self, path: str | None = None) -> ResponseTimeStats:
@@ -224,6 +235,7 @@ class ResponseTimeMiddleware:
         try:
             # 带超时执行
             import asyncio
+
             timeout_sec = self.tracker.config.timeout_ms / 1000.0
 
             if self.tracker.config.enable_timeout:
@@ -248,10 +260,13 @@ class ResponseTimeMiddleware:
 
             logger.error(
                 "请求超时: path=%s, elapsed=%.1fms, timeout=%.0fms",
-                path, elapsed_ms, self.tracker.config.timeout_ms,
+                path,
+                elapsed_ms,
+                self.tracker.config.timeout_ms,
             )
 
             from starlette.responses import JSONResponse
+
             return JSONResponse(
                 status_code=504,
                 content={

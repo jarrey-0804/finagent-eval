@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class CheckpointData(BaseModel):
     """检查点数据"""
+
     checkpoint_id: str
     evaluation_id: str
     task_index: int
@@ -151,11 +152,13 @@ class ProductionCheckpointer:
                     checkpoint_id,
                     evaluation_id,
                     f"eval_{evaluation_id}",
-                    json.dumps({
-                        "task_index": task_index,
-                        "state_data": state_data,
-                        "metadata": meta,
-                    }),
+                    json.dumps(
+                        {
+                            "task_index": task_index,
+                            "state_data": state_data,
+                            "metadata": meta,
+                        }
+                    ),
                     now,
                 )
                 return checkpoint_id
@@ -345,9 +348,7 @@ class ProductionCheckpointer:
                         max_per_evaluation,
                     )
             except Exception as exc:
-                logger.error(
-                    "ProductionCheckpointer: 清理 PostgreSQL 旧检查点失败: %s", exc
-                )
+                logger.error("ProductionCheckpointer: 清理 PostgreSQL 旧检查点失败: %s", exc)
 
         # 内存存储清理
         for _eval_id, checkpoints in self._checkpoints.items():

@@ -182,28 +182,28 @@ class ScorerNode(BaseNode):
             )
 
             # 评分
-            score = self.scoring_engine.score_task(
-                task, response, task.reference_answer
-            )
+            score = self.scoring_engine.score_task(task, response, task.reference_answer)
 
             # 序列化评分
-            task_scores.append({
-                "task_id": score.task_id,
-                "overall_score": score.overall_score,
-                "rating": score.rating.value,
-                "veto_triggered": score.veto_triggered,
-                "veto_reason": score.veto_reason,
-                "dimension_scores": [
-                    {
-                        "dimension": ds.dimension.value,
-                        "score": ds.score,
-                        "confidence": ds.confidence,
-                        "evidence": ds.evidence,
-                        "reasoning": ds.reasoning,
-                    }
-                    for ds in score.dimension_scores
-                ],
-            })
+            task_scores.append(
+                {
+                    "task_id": score.task_id,
+                    "overall_score": score.overall_score,
+                    "rating": score.rating.value,
+                    "veto_triggered": score.veto_triggered,
+                    "veto_reason": score.veto_reason,
+                    "dimension_scores": [
+                        {
+                            "dimension": ds.dimension.value,
+                            "score": ds.score,
+                            "confidence": ds.confidence,
+                            "evidence": ds.evidence,
+                            "reasoning": ds.reasoning,
+                        }
+                        for ds in score.dimension_scores
+                    ],
+                }
+            )
 
         state["task_scores"] = task_scores
         return state
@@ -320,21 +320,18 @@ class ReporterNode(BaseNode):
             "agent_id": state["agent_id"],
             "eval_mode": state["eval_mode"],
             "generated_at": state.get("completed_at"),
-
             "summary": {
                 "overall_score": evaluation_score.get("overall_score", 0),
                 "overall_rating": evaluation_score.get("overall_rating", "D"),
                 "total_tasks": evaluation_score.get("total_tasks", 0),
                 "passed_tasks": evaluation_score.get("passed_tasks", 0),
                 "pass_rate": (
-                    evaluation_score.get("passed_tasks", 0) /
-                    max(evaluation_score.get("total_tasks", 1), 1)
+                    evaluation_score.get("passed_tasks", 0)
+                    / max(evaluation_score.get("total_tasks", 1), 1)
                 ),
                 "veto_count": evaluation_score.get("veto_count", 0),
             },
-
             "dimension_scores": evaluation_score.get("dimension_averages", {}),
-
             "task_details": [
                 {
                     "task_id": ts["task_id"],
@@ -342,13 +339,11 @@ class ReporterNode(BaseNode):
                     "rating": ts["rating"],
                     "veto_triggered": ts["veto_triggered"],
                     "dimension_scores": {
-                        ds["dimension"]: ds["score"]
-                        for ds in ts["dimension_scores"]
+                        ds["dimension"]: ds["score"] for ds in ts["dimension_scores"]
                     },
                 }
                 for ts in task_scores
             ],
-
             "recommendations": recommendations,
         }
 

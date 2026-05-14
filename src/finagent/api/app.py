@@ -22,6 +22,7 @@ from .middleware.responsetime import ResponseTimeConfig, ResponseTimeMiddleware,
 @dataclass
 class AppConfig:
     """应用配置"""
+
     title: str = "金融AI Agent评测系统 API"
     version: str = "1.0.0"
     description: str = "提供金融AI Agent的标准化评测服务"
@@ -34,9 +35,9 @@ class AppConfig:
     cors_methods: list[str] = None
 
     # 响应时间配置
-    response_timeout_ms: float = 5000.0       # 单请求硬超时 5s
-    p95_threshold_ms: float = 500.0           # P95 告警阈值 500ms (SRS NFR-P-03)
-    enable_response_timeout: bool = True      # 是否启用超时强制中断
+    response_timeout_ms: float = 5000.0  # 单请求硬超时 5s
+    p95_threshold_ms: float = 500.0  # P95 告警阈值 500ms (SRS NFR-P-03)
+    enable_response_timeout: bool = True  # 是否启用超时强制中断
 
     # 调试模式
     debug: bool = False
@@ -51,6 +52,7 @@ class AppConfig:
 # 全局状态
 class AppState:
     """应用状态"""
+
     checkpointer: PostgresCheckpointer | None = None
     pipelines: dict = {}
 
@@ -106,10 +108,17 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def jwt_auth_middleware(request: Request, call_next):
-        token = request.headers.get("Authorization", "").replace("Bearer ", "") if request.headers.get("Authorization") else None
+        token = (
+            request.headers.get("Authorization", "").replace("Bearer ", "")
+            if request.headers.get("Authorization")
+            else None
+        )
         authenticated, user_info = await jwt_auth.authenticate(token, request.url.path)
         if not authenticated:
-            return JSONResponse(status_code=401, content={"error": "Unauthorized", "message": "无效或缺失的认证令牌"})
+            return JSONResponse(
+                status_code=401,
+                content={"error": "Unauthorized", "message": "无效或缺失的认证令牌"},
+            )
         request.state.user = user_info
         response = await call_next(request)
         return response
@@ -139,7 +148,11 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         if request.url.path in ("/health", "/ready", "/live", "/docs", "/openapi.json", "/metrics"):
             return await call_next(request)
         # 获取限流键（优先使用用户ID，否则使用IP）
-        key = getattr(request.state, "user", {}).get("user_id", None) if hasattr(request.state, "user") else None
+        key = (
+            getattr(request.state, "user", {}).get("user_id", None)
+            if hasattr(request.state, "user")
+            else None
+        )
         if not key:
             key = request.client.host if request.client else "unknown"
         result = rl_middleware.check_rate_limit(key)
@@ -161,6 +174,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     # 注册路由
     from .routes import register_routes
+
     register_routes(app)
 
     # WebSocket 实时评测进度
@@ -247,7 +261,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
 
 def run_server(
-    host: str = "0.0.0.0",
+    host: str = "127.0.0.1",
     port: int = 8000,
     config: AppConfig | None = None,
 ):

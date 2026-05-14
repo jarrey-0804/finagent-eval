@@ -102,7 +102,7 @@ class HTTPAdapter(FinancialAgentInterface):
         """
         self._agent_name = agent_name
         self._agent_type = agent_type
-        self._api_endpoint = api_endpoint.rstrip('/')
+        self._api_endpoint = api_endpoint.rstrip("/")
         self._api_key = api_key
         self._llm_backend = llm_backend
         self._version = version
@@ -252,12 +252,14 @@ class HTTPAdapter(FinancialAgentInterface):
     def serialize_state(self, state: AgentState) -> bytes:
         """序列化状态。"""
         import json
-        return json.dumps(state.model_dump()).encode('utf-8')
+
+        return json.dumps(state.model_dump()).encode("utf-8")
 
     def deserialize_state(self, data: bytes) -> AgentState:
         """反序列化状态。"""
         import json
-        return AgentState(**json.loads(data.decode('utf-8')))
+
+        return AgentState(**json.loads(data.decode("utf-8")))
 
     def get_trace(self, task_id: str) -> dict | None:
         """获取指定任务的执行追踪。"""

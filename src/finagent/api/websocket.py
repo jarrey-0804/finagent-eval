@@ -64,7 +64,10 @@ manager = ConnectionManager()
 
 # ============ 消息类型 ============
 
-def progress_message(evaluation_id: str, phase: str, progress: float, stage: str, message: str = "") -> dict:
+
+def progress_message(
+    evaluation_id: str, phase: str, progress: float, stage: str, message: str = ""
+) -> dict:
     """构建进度消息"""
     return {
         "type": "progress",
@@ -88,7 +91,9 @@ def status_message(evaluation_id: str, status: str, result: dict | None = None) 
     }
 
 
-def task_message(evaluation_id: str, task_id: str, dimension: str, score: float | None = None) -> dict:
+def task_message(
+    evaluation_id: str, task_id: str, dimension: str, score: float | None = None
+) -> dict:
     """构建任务完成消息"""
     return {
         "type": "task_completed",

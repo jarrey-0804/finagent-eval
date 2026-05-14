@@ -23,6 +23,7 @@ def __getattr__(name):
     if name in __all__:
         if name in ("create_app", "AppConfig"):
             from .app import AppConfig, create_app
+
             return create_app if name == "create_app" else AppConfig
         if name in ("EvaluationRouter", "AgentRouter", "TaskRouter", "ReportRouter"):
             from .routes import (
@@ -31,15 +32,20 @@ def __getattr__(name):
                 ReportRouter,
                 TaskRouter,
             )
+
             return {
                 "EvaluationRouter": EvaluationRouter,
                 "AgentRouter": AgentRouter,
                 "TaskRouter": TaskRouter,
                 "ReportRouter": ReportRouter,
             }[name]
-        if name in ("EvaluationRequest", "EvaluationResponse",
-                     "AgentRegistrationRequest", "TaskGenerationRequest",
-                     "ReportRequest"):
+        if name in (
+            "EvaluationRequest",
+            "EvaluationResponse",
+            "AgentRegistrationRequest",
+            "TaskGenerationRequest",
+            "ReportRequest",
+        ):
             from .schemas import (
                 AgentRegistrationRequest,
                 EvaluationRequest,
@@ -47,6 +53,7 @@ def __getattr__(name):
                 ReportRequest,
                 TaskGenerationRequest,
             )
+
             return {
                 "EvaluationRequest": EvaluationRequest,
                 "EvaluationResponse": EvaluationResponse,

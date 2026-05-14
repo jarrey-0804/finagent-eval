@@ -35,8 +35,10 @@ logger = logging.getLogger(__name__)
 # 枚举定义
 # ---------------------------------------------------------------------------
 
+
 class PipelineStage(StrEnum):
     """流水线阶段"""
+
     INIT = "init"
     TASK_GENERATION = "task_generation"
     AGENT_EXECUTION = "agent_execution"
@@ -53,6 +55,7 @@ class PipelineStage(StrEnum):
 
 class EvalPhase(StrEnum):
     """评测阶段（三阶段评估流水线）"""
+
     STATIC = "static"
     DYNAMIC = "dynamic"
     TRUST = "trust"
@@ -103,8 +106,10 @@ PHASE_TASK_TYPES: dict[EvalPhase, list[TaskType]] = {
 # 流水线状态
 # ---------------------------------------------------------------------------
 
+
 class PipelineState(TypedDict):
     """流水线状态"""
+
     # 基本信息
     pipeline_id: str
     agent_id: str
@@ -140,6 +145,7 @@ class PipelineState(TypedDict):
 # 流水线配置
 # ---------------------------------------------------------------------------
 
+
 class PipelineConfig(BaseModel):
     """流水线配置"""
 
@@ -172,13 +178,12 @@ class PipelineConfig(BaseModel):
             EvalDimension.TOOL_USAGE,
             EvalDimension.COMPLIANCE,
         ],
-        description="快速模式评测维度"
+        description="快速模式评测维度",
     )
 
     # 三阶段流水线配置
     enable_three_stage: bool = Field(
-        default=True,
-        description="是否启用三阶段评估流水线（FULL 模式默认启用）"
+        default=True, description="是否启用三阶段评估流水线（FULL 模式默认启用）"
     )
 
 
@@ -186,9 +191,11 @@ class PipelineConfig(BaseModel):
 # 流水线执行结果
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class PipelineResult:
     """流水线执行结果"""
+
     pipeline_id: str
     agent_id: str
     status: EvalStatus
@@ -210,9 +217,11 @@ class PipelineResult:
 # 阶段结果
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class PhaseResult:
     """单个阶段的评估结果"""
+
     phase: EvalPhase
     tasks: list[EvalTask] = field(default_factory=list)
     responses: list[EvalResponse] = field(default_factory=list)
@@ -234,10 +243,16 @@ class PhaseResult:
             "phase": self.phase.value,
             "task_count": len(self.tasks),
             "overall_score": self.evaluation_score.overall_score if self.evaluation_score else None,
-            "overall_rating": self.evaluation_score.overall_rating.value if self.evaluation_score else None,
+            "overall_rating": self.evaluation_score.overall_rating.value
+            if self.evaluation_score
+            else None,
             "dimension_averages": {
                 dim.value: score
-                for dim, score in (self.evaluation_score.dimension_averages.items() if self.evaluation_score else {})
+                for dim, score in (
+                    self.evaluation_score.dimension_averages.items()
+                    if self.evaluation_score
+                    else {}
+                )
             },
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
@@ -248,6 +263,7 @@ class PhaseResult:
 # ---------------------------------------------------------------------------
 # EvalPipeline（原始流水线，保持向后兼容）
 # ---------------------------------------------------------------------------
+
 
 class EvalPipeline:
     """评测流水线"""
@@ -261,9 +277,7 @@ class EvalPipeline:
     ):
         self.agent = agent
         self.config = config or PipelineConfig()
-        self.task_generator = EvalTaskGenerator(
-            task_generator_config or TaskGeneratorConfig()
-        )
+        self.task_generator = EvalTaskGenerator(task_generator_config or TaskGeneratorConfig())
         self.scoring_engine = ScoringEngine(scoring_config or ScoringConfig())
 
         self._state: PipelineState | None = None
@@ -358,11 +372,13 @@ class EvalPipeline:
         except Exception as e:
             self._state["status"] = EvalStatus.FAILED.value
             self._state["current_stage"] = PipelineStage.FAILED.value
-            self._state["errors"].append({
-                "stage": self._state["current_stage"],
-                "error": str(e),
-                "timestamp": datetime.now().isoformat(),
-            })
+            self._state["errors"].append(
+                {
+                    "stage": self._state["current_stage"],
+                    "error": str(e),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
             result.status = EvalStatus.FAILED
             result.errors = self._state["errors"]
 
@@ -418,11 +434,13 @@ class EvalPipeline:
         final_responses = []
         for i, response in enumerate(responses):
             if isinstance(response, Exception):
-                final_responses.append(EvalResponse(
-                    task_id=tasks[i].task_id,
-                    output="",
-                    error=str(response),
-                ))
+                final_responses.append(
+                    EvalResponse(
+                        task_id=tasks[i].task_id,
+                        output="",
+                        error=str(response),
+                    )
+                )
             else:
                 final_responses.append(response)
 
@@ -431,7 +449,11 @@ class EvalPipeline:
     async def _execute_single_task(self, task: EvalTask) -> EvalResponse:
         """执行单个任务"""
         try:
-            query = task.input_data.get("query", "") if isinstance(task.input_data, dict) else str(task.input_data)
+            query = (
+                task.input_data.get("query", "")
+                if isinstance(task.input_data, dict)
+                else str(task.input_data)
+            )
             timeout = task.time_limit_seconds or self.config.task_timeout_seconds
             response = await asyncio.wait_for(
                 self.agent.ainvoke(query, task.context),
@@ -460,10 +482,12 @@ class EvalPipeline:
         scores = []
 
         for task, response in zip(tasks, responses, strict=False):
-            reference = task.input_data.get("reference_answer", "") if isinstance(task.input_data, dict) else None
-            score = self.scoring_engine.score_task(
-                task, response, reference
+            reference = (
+                task.input_data.get("reference_answer", "")
+                if isinstance(task.input_data, dict)
+                else None
             )
+            score = self.scoring_engine.score_task(task, response, reference)
             scores.append(score)
 
         return scores
@@ -477,7 +501,13 @@ class EvalPipeline:
         """聚合评分"""
 
         task_response_pairs = [
-            (task, response, task.input_data.get("reference_answer", "") if isinstance(task.input_data, dict) else None)
+            (
+                task,
+                response,
+                task.input_data.get("reference_answer", "")
+                if isinstance(task.input_data, dict)
+                else None,
+            )
             for task, response in zip(tasks, responses, strict=False)
         ]
 
@@ -494,7 +524,6 @@ class EvalPipeline:
             "agent_id": self._state["agent_id"],
             "eval_mode": self._state["eval_mode"],
             "generated_at": datetime.now().isoformat(),
-
             "summary": {
                 "overall_score": evaluation_score.overall_score,
                 "overall_rating": evaluation_score.overall_rating.value,
@@ -503,12 +532,9 @@ class EvalPipeline:
                 "pass_rate": evaluation_score.pass_rate,
                 "veto_count": evaluation_score.veto_count,
             },
-
             "dimension_scores": {
-                dim.value: score
-                for dim, score in evaluation_score.dimension_averages.items()
+                dim.value: score for dim, score in evaluation_score.dimension_averages.items()
             },
-
             "task_details": [
                 {
                     "task_id": ts.task_id,
@@ -516,13 +542,11 @@ class EvalPipeline:
                     "rating": ts.rating.value,
                     "veto_triggered": ts.veto_triggered,
                     "dimension_scores": {
-                        ds.dimension.value: ds.score
-                        for ds in ts.dimension_scores
+                        ds.dimension.value: ds.score for ds in ts.dimension_scores
                     },
                 }
                 for ts in evaluation_score.task_scores
             ],
-
             "recommendations": self._generate_recommendations(evaluation_score),
         }
 
@@ -535,19 +559,13 @@ class EvalPipeline:
         # 基于各维度分数生成建议
         for dim, avg_score in score.dimension_averages.items():
             if avg_score < 60:
-                recommendations.append(
-                    f"{dim.value}维度得分较低（{avg_score:.1f}），建议重点改进"
-                )
+                recommendations.append(f"{dim.value}维度得分较低（{avg_score:.1f}），建议重点改进")
             elif avg_score < 80:
-                recommendations.append(
-                    f"{dim.value}维度有提升空间（{avg_score:.1f}）"
-                )
+                recommendations.append(f"{dim.value}维度有提升空间（{avg_score:.1f}）")
 
         # 基于一票否决生成建议
         if score.veto_count > 0:
-            recommendations.append(
-                f"存在{score.veto_count}次一票否决，需重点关注合规性和安全性"
-            )
+            recommendations.append(f"存在{score.veto_count}次一票否决，需重点关注合规性和安全性")
 
         if not recommendations:
             recommendations.append("整体表现良好，继续保持")
@@ -671,9 +689,7 @@ class EvalPipeline:
         if checkpointer is not None and evaluation_id is not None:
             resume_info = await checkpointer.get_resume_info(evaluation_id)
             if resume_info is None:
-                raise ValueError(
-                    f"未找到评测 {evaluation_id} 的检查点，无法恢复"
-                )
+                raise ValueError(f"未找到评测 {evaluation_id} 的检查点，无法恢复")
             saved_state = resume_info["state_data"]
             loaded = PipelineState(
                 pipeline_id=saved_state.get("pipeline_id", str(uuid.uuid4())),
@@ -703,9 +719,7 @@ class EvalPipeline:
             )
             return loaded
 
-        raise ValueError(
-            "resume() 需要提供 state 参数，或同时提供 checkpointer 和 evaluation_id"
-        )
+        raise ValueError("resume() 需要提供 state 参数，或同时提供 checkpointer 和 evaluation_id")
 
     def _validate_resume_state(self) -> None:
         """验证恢复状态是否有效。"""
@@ -727,11 +741,13 @@ class EvalPipeline:
         """处理恢复过程中的错误。"""
         self._state["status"] = EvalStatus.FAILED.value
         self._state["current_stage"] = PipelineStage.FAILED.value
-        self._state["errors"].append({
-            "stage": self._state["current_stage"],
-            "error": str(error),
-            "timestamp": datetime.now().isoformat(),
-        })
+        self._state["errors"].append(
+            {
+                "stage": self._state["current_stage"],
+                "error": str(error),
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
         result.status = EvalStatus.FAILED
         result.errors = self._state["errors"]
         logger.error("流水线恢复执行失败: %s", error, exc_info=True)
@@ -784,9 +800,7 @@ class EvalPipeline:
             all_tasks = self._dict_to_tasks(self._state["tasks"])
             all_responses = self._dict_to_responses(self._state["responses"])
             task_scores = await self._score_tasks(all_tasks, all_responses)
-            self._state["task_scores"] = [
-                self._task_score_to_dict(s) for s in task_scores
-            ]
+            self._state["task_scores"] = [self._task_score_to_dict(s) for s in task_scores]
 
         await self._save_checkpoint_if_available(
             checkpointer, evaluation_id, stage=PipelineStage.SCORING.value
@@ -808,9 +822,7 @@ class EvalPipeline:
             evaluation_score = await self._aggregate_scores(
                 all_tasks, all_responses, all_task_scores
             )
-            self._state["evaluation_score"] = self._eval_score_to_dict(
-                evaluation_score
-            )
+            self._state["evaluation_score"] = self._eval_score_to_dict(evaluation_score)
             result.evaluation_score = evaluation_score
 
         await self._save_checkpoint_if_available(
@@ -854,27 +866,32 @@ class EvalPipeline:
         """将字典列表还原为 EvalTask 对象列表。"""
         tasks = []
         for td in task_dicts:
-            tasks.append(EvalTask(
-                task_id=td.get("task_id", str(uuid.uuid4())),
-                task_type=TaskType(td.get("task_type", "knowledge_qa")),
-                dimension=td.get("dimension", "accuracy"),
-                input_data=td.get("input_data", {"query": td.get("query", "")}),
-                context=td.get("context", {}),
-                time_limit_seconds=td.get("time_limit_seconds") or td.get("timeout_seconds", 300),
-                metadata=td.get("metadata", {}),
-            ))
+            tasks.append(
+                EvalTask(
+                    task_id=td.get("task_id", str(uuid.uuid4())),
+                    task_type=TaskType(td.get("task_type", "knowledge_qa")),
+                    dimension=td.get("dimension", "accuracy"),
+                    input_data=td.get("input_data", {"query": td.get("query", "")}),
+                    context=td.get("context", {}),
+                    time_limit_seconds=td.get("time_limit_seconds")
+                    or td.get("timeout_seconds", 300),
+                    metadata=td.get("metadata", {}),
+                )
+            )
         return tasks
 
     def _dict_to_responses(self, response_dicts: list[dict]) -> list[EvalResponse]:
         """将字典列表还原为 EvalResponse 对象列表。"""
         responses = []
         for rd in response_dicts:
-            responses.append(EvalResponse(
-                task_id=rd.get("task_id", ""),
-                output=rd.get("output", ""),
-                tool_calls=rd.get("tool_calls", []),
-                error=rd.get("error"),
-            ))
+            responses.append(
+                EvalResponse(
+                    task_id=rd.get("task_id", ""),
+                    output=rd.get("output", ""),
+                    tool_calls=rd.get("tool_calls", []),
+                    error=rd.get("error"),
+                )
+            )
         return responses
 
     def _dict_to_task_scores(self, score_dicts: list[dict]) -> list[TaskScore]:
@@ -885,31 +902,37 @@ class EvalPipeline:
         for sd in score_dicts:
             dim_scores = []
             for ds in sd.get("dimension_scores", []):
-                dim_scores.append(DimensionScore(
-                    dimension=EvalDimension(ds.get("dimension", "accuracy")),
-                    score=ds.get("score", 0.0),
-                    confidence=ds.get("confidence", 1.0),
-                ))
-            scores.append(TaskScore(
-                task_id=sd.get("task_id", ""),
-                overall_score=sd.get("overall_score", 0.0),
-                rating=RatingLevel(sd.get("rating", "D")),
-                veto_triggered=sd.get("veto_triggered", False),
-                dimension_scores=dim_scores,
-            ))
+                dim_scores.append(
+                    DimensionScore(
+                        dimension=EvalDimension(ds.get("dimension", "accuracy")),
+                        score=ds.get("score", 0.0),
+                        confidence=ds.get("confidence", 1.0),
+                    )
+                )
+            scores.append(
+                TaskScore(
+                    task_id=sd.get("task_id", ""),
+                    overall_score=sd.get("overall_score", 0.0),
+                    rating=RatingLevel(sd.get("rating", "D")),
+                    veto_triggered=sd.get("veto_triggered", False),
+                    dimension_scores=dim_scores,
+                )
+            )
         return scores
 
     # 序列化辅助方法
     def _task_to_dict(self, task: EvalTask) -> dict:
         task_type = task.task_type
-        if hasattr(task_type, 'value'):
+        if hasattr(task_type, "value"):
             task_type = task_type.value
         return {
             "task_id": task.task_id,
             "task_type": task_type,
             "query": task.input_data.get("query", "") if isinstance(task.input_data, dict) else "",
             "context": task.context,
-            "dimensions": task.input_data.get("dimensions", []) if isinstance(task.input_data, dict) else [],
+            "dimensions": task.input_data.get("dimensions", [])
+            if isinstance(task.input_data, dict)
+            else [],
             "timeout_seconds": task.time_limit_seconds,
             "dimension": task.dimension,
             "input_data": task.input_data,
@@ -926,7 +949,7 @@ class EvalPipeline:
 
     def _task_score_to_dict(self, score: TaskScore) -> dict:
         rating = score.rating
-        if hasattr(rating, 'value'):
+        if hasattr(rating, "value"):
             rating = rating.value
         return {
             "task_id": score.task_id,
@@ -935,7 +958,9 @@ class EvalPipeline:
             "veto_triggered": score.veto_triggered,
             "dimension_scores": [
                 {
-                    "dimension": ds.dimension.value if hasattr(ds.dimension, 'value') else ds.dimension,
+                    "dimension": ds.dimension.value
+                    if hasattr(ds.dimension, "value")
+                    else ds.dimension,
                     "score": ds.score,
                     "confidence": ds.confidence,
                 }
@@ -945,7 +970,7 @@ class EvalPipeline:
 
     def _eval_score_to_dict(self, score: EvaluationScore) -> dict:
         overall_rating = score.overall_rating
-        if hasattr(overall_rating, 'value'):
+        if hasattr(overall_rating, "value"):
             overall_rating = overall_rating.value
         return {
             "agent_id": score.agent_id,
@@ -992,9 +1017,7 @@ class ThreeStagePipeline:
     ):
         self.agent = agent
         self.config = config or PipelineConfig()
-        self.task_generator = EvalTaskGenerator(
-            task_generator_config or TaskGeneratorConfig()
-        )
+        self.task_generator = EvalTaskGenerator(task_generator_config or TaskGeneratorConfig())
         self.scoring_engine = ScoringEngine(scoring_config or ScoringConfig())
 
         self._state: PipelineState | None = None
@@ -1045,7 +1068,9 @@ class ThreeStagePipeline:
                 logger.info(
                     "阶段 %s 完成: score=%.1f, tasks=%d",
                     phase.value,
-                    phase_result.evaluation_score.overall_score if phase_result.evaluation_score else 0.0,
+                    phase_result.evaluation_score.overall_score
+                    if phase_result.evaluation_score
+                    else 0.0,
                     len(phase_result.tasks),
                 )
 
@@ -1068,12 +1093,14 @@ class ThreeStagePipeline:
         except Exception as e:
             self._state["status"] = EvalStatus.FAILED.value
             self._state["current_stage"] = PipelineStage.FAILED.value
-            self._state["errors"].append({
-                "stage": self._state["current_stage"],
-                "phase": self._state.get("current_phase", ""),
-                "error": str(e),
-                "timestamp": datetime.now().isoformat(),
-            })
+            self._state["errors"].append(
+                {
+                    "stage": self._state["current_stage"],
+                    "phase": self._state.get("current_phase", ""),
+                    "error": str(e),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
             result.status = EvalStatus.FAILED
             result.errors = self._state["errors"]
             logger.error("三阶段流水线执行失败: %s", e, exc_info=True)
@@ -1163,9 +1190,7 @@ class ThreeStagePipeline:
         if checkpointer is not None and evaluation_id is not None:
             resume_info = await checkpointer.get_resume_info(evaluation_id)
             if resume_info is None:
-                raise ValueError(
-                    f"未找到评测 {evaluation_id} 的检查点，无法恢复"
-                )
+                raise ValueError(f"未找到评测 {evaluation_id} 的检查点，无法恢复")
             saved_state = resume_info["state_data"]
             loaded = PipelineState(
                 pipeline_id=saved_state.get("pipeline_id", str(uuid.uuid4())),
@@ -1195,9 +1220,7 @@ class ThreeStagePipeline:
             )
             return loaded
 
-        raise ValueError(
-            "resume() 需要提供 state 参数，或同时提供 checkpointer 和 evaluation_id"
-        )
+        raise ValueError("resume() 需要提供 state 参数，或同时提供 checkpointer 和 evaluation_id")
 
     def _validate_resume_state(self) -> None:
         """验证恢复状态是否有效。"""
@@ -1219,12 +1242,14 @@ class ThreeStagePipeline:
         """处理恢复过程中的错误。"""
         self._state["status"] = EvalStatus.FAILED.value
         self._state["current_stage"] = PipelineStage.FAILED.value
-        self._state["errors"].append({
-            "stage": self._state["current_stage"],
-            "phase": self._state.get("current_phase", ""),
-            "error": str(error),
-            "timestamp": datetime.now().isoformat(),
-        })
+        self._state["errors"].append(
+            {
+                "stage": self._state["current_stage"],
+                "phase": self._state.get("current_phase", ""),
+                "error": str(error),
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
         result.status = EvalStatus.FAILED
         result.errors = self._state["errors"]
         logger.error("三阶段流水线恢复执行失败: %s", error, exc_info=True)
@@ -1237,8 +1262,12 @@ class ThreeStagePipeline:
             if phase_data:
                 self._phase_results[phase] = PhaseResult(
                     phase=phase,
-                    started_at=datetime.fromisoformat(phase_data["started_at"]) if phase_data.get("started_at") else None,
-                    completed_at=datetime.fromisoformat(phase_data["completed_at"]) if phase_data.get("completed_at") else None,
+                    started_at=datetime.fromisoformat(phase_data["started_at"])
+                    if phase_data.get("started_at")
+                    else None,
+                    completed_at=datetime.fromisoformat(phase_data["completed_at"])
+                    if phase_data.get("completed_at")
+                    else None,
                 )
 
     def _compute_resume_index(self) -> int:
@@ -1360,9 +1389,7 @@ class ThreeStagePipeline:
             phase_result.task_scores = task_scores
 
             # 4. 聚合阶段评分
-            evaluation_score = self._aggregate_phase_score(
-                tasks, responses, task_scores, agent_id
-            )
+            evaluation_score = self._aggregate_phase_score(tasks, responses, task_scores, agent_id)
             phase_result.evaluation_score = evaluation_score
 
             # 合并到全局状态
@@ -1371,11 +1398,13 @@ class ThreeStagePipeline:
             self._state["task_scores"].extend([self._task_score_to_dict(s) for s in task_scores])
 
         except Exception as e:
-            phase_result.errors.append({
-                "phase": phase.value,
-                "error": str(e),
-                "timestamp": datetime.now().isoformat(),
-            })
+            phase_result.errors.append(
+                {
+                    "phase": phase.value,
+                    "error": str(e),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
             logger.error("阶段 %s 执行失败: %s", phase.value, e, exc_info=True)
             raise
 
@@ -1398,11 +1427,13 @@ class ThreeStagePipeline:
         final_responses = []
         for i, response in enumerate(responses):
             if isinstance(response, Exception):
-                final_responses.append(EvalResponse(
-                    task_id=tasks[i].task_id,
-                    output="",
-                    error=str(response),
-                ))
+                final_responses.append(
+                    EvalResponse(
+                        task_id=tasks[i].task_id,
+                        output="",
+                        error=str(response),
+                    )
+                )
             else:
                 final_responses.append(response)
 
@@ -1411,7 +1442,11 @@ class ThreeStagePipeline:
     async def _execute_single_task(self, task: EvalTask) -> EvalResponse:
         """执行单个任务"""
         try:
-            query = task.input_data.get("query", "") if isinstance(task.input_data, dict) else str(task.input_data)
+            query = (
+                task.input_data.get("query", "")
+                if isinstance(task.input_data, dict)
+                else str(task.input_data)
+            )
             timeout = task.time_limit_seconds or self.config.task_timeout_seconds
             response = await asyncio.wait_for(
                 self.agent.ainvoke(query, task.context),
@@ -1439,7 +1474,11 @@ class ThreeStagePipeline:
         """对任务进行评分"""
         scores = []
         for task, response in zip(tasks, responses, strict=False):
-            reference = task.input_data.get("reference_answer", "") if isinstance(task.input_data, dict) else None
+            reference = (
+                task.input_data.get("reference_answer", "")
+                if isinstance(task.input_data, dict)
+                else None
+            )
             score = self.scoring_engine.score_task(task, response, reference)
             scores.append(score)
         return scores
@@ -1453,12 +1492,16 @@ class ThreeStagePipeline:
     ) -> EvaluationScore:
         """聚合单个阶段的评分"""
         task_response_pairs = [
-            (task, response, task.input_data.get("reference_answer", "") if isinstance(task.input_data, dict) else None)
+            (
+                task,
+                response,
+                task.input_data.get("reference_answer", "")
+                if isinstance(task.input_data, dict)
+                else None,
+            )
             for task, response in zip(tasks, responses, strict=False)
         ]
-        return self.scoring_engine.score_evaluation(
-            task_response_pairs, agent_id
-        )
+        return self.scoring_engine.score_evaluation(task_response_pairs, agent_id)
 
     def _aggregate_phase_results(self) -> EvaluationScore:
         """
@@ -1487,9 +1530,8 @@ class ThreeStagePipeline:
 
         # 收集维度分数
         import statistics
-        dimension_scores_map: dict[EvalDimension, list[float]] = {
-            dim: [] for dim in EvalDimension
-        }
+
+        dimension_scores_map: dict[EvalDimension, list[float]] = {dim: [] for dim in EvalDimension}
         for ts in all_task_scores:
             for ds in ts.dimension_scores:
                 dimension_scores_map[ds.dimension].append(ds.score)
@@ -1505,8 +1547,10 @@ class ThreeStagePipeline:
 
         total_tasks = len(all_task_scores)
         passed_tasks = sum(
-            1 for ts in all_task_scores
-            if ts.overall_score >= self.scoring_engine.config.pass_threshold and not ts.veto_triggered
+            1
+            for ts in all_task_scores
+            if ts.overall_score >= self.scoring_engine.config.pass_threshold
+            and not ts.veto_triggered
         )
         veto_count = sum(1 for ts in all_task_scores if ts.veto_triggered)
 
@@ -1529,7 +1573,6 @@ class ThreeStagePipeline:
             "eval_mode": self._state["eval_mode"],
             "pipeline_type": "three_stage",
             "generated_at": datetime.now().isoformat(),
-
             "summary": {
                 "overall_score": evaluation_score.overall_score,
                 "overall_rating": evaluation_score.overall_rating.value,
@@ -1538,12 +1581,9 @@ class ThreeStagePipeline:
                 "pass_rate": evaluation_score.pass_rate,
                 "veto_count": evaluation_score.veto_count,
             },
-
             "dimension_scores": {
-                dim.value: score
-                for dim, score in evaluation_score.dimension_averages.items()
+                dim.value: score for dim, score in evaluation_score.dimension_averages.items()
             },
-
             # 三阶段独立报告
             "phases": {},
         }
@@ -1565,8 +1605,7 @@ class ThreeStagePipeline:
                         "passed_tasks": es.passed_tasks,
                         "veto_count": es.veto_count,
                         "dimension_averages": {
-                            dim.value: score
-                            for dim, score in es.dimension_averages.items()
+                            dim.value: score for dim, score in es.dimension_averages.items()
                         },
                     }
                     phase_section["recommendations"] = self._generate_phase_recommendations(
@@ -1606,9 +1645,7 @@ class ThreeStagePipeline:
                 EvalPhase.DYNAMIC: "动态",
                 EvalPhase.TRUST: "信任",
             }.get(phase, phase.value)
-            recommendations.append(
-                f"{phase_label}阶段存在{score.veto_count}次一票否决，需重点关注"
-            )
+            recommendations.append(f"{phase_label}阶段存在{score.veto_count}次一票否决，需重点关注")
 
         if not recommendations:
             recommendations.append(f"{phase.value}阶段表现良好")
@@ -1621,18 +1658,12 @@ class ThreeStagePipeline:
 
         for dim, avg_score in score.dimension_averages.items():
             if avg_score < 60:
-                recommendations.append(
-                    f"{dim.value}维度得分较低（{avg_score:.1f}），建议重点改进"
-                )
+                recommendations.append(f"{dim.value}维度得分较低（{avg_score:.1f}），建议重点改进")
             elif avg_score < 80:
-                recommendations.append(
-                    f"{dim.value}维度有提升空间（{avg_score:.1f}）"
-                )
+                recommendations.append(f"{dim.value}维度有提升空间（{avg_score:.1f}）")
 
         if score.veto_count > 0:
-            recommendations.append(
-                f"存在{score.veto_count}次一票否决，需重点关注合规性和安全性"
-            )
+            recommendations.append(f"存在{score.veto_count}次一票否决，需重点关注合规性和安全性")
 
         if not recommendations:
             recommendations.append("整体表现良好，继续保持")
@@ -1664,14 +1695,16 @@ class ThreeStagePipeline:
 
     def _task_to_dict(self, task: EvalTask) -> dict:
         task_type = task.task_type
-        if hasattr(task_type, 'value'):
+        if hasattr(task_type, "value"):
             task_type = task_type.value
         return {
             "task_id": task.task_id,
             "task_type": task_type,
             "query": task.input_data.get("query", "") if isinstance(task.input_data, dict) else "",
             "context": task.context,
-            "dimensions": task.input_data.get("dimensions", []) if isinstance(task.input_data, dict) else [],
+            "dimensions": task.input_data.get("dimensions", [])
+            if isinstance(task.input_data, dict)
+            else [],
             "timeout_seconds": task.time_limit_seconds,
             "dimension": task.dimension,
             "input_data": task.input_data,
@@ -1688,7 +1721,7 @@ class ThreeStagePipeline:
 
     def _task_score_to_dict(self, score: TaskScore) -> dict:
         rating = score.rating
-        if hasattr(rating, 'value'):
+        if hasattr(rating, "value"):
             rating = rating.value
         return {
             "task_id": score.task_id,
@@ -1697,7 +1730,9 @@ class ThreeStagePipeline:
             "veto_triggered": score.veto_triggered,
             "dimension_scores": [
                 {
-                    "dimension": ds.dimension.value if hasattr(ds.dimension, 'value') else ds.dimension,
+                    "dimension": ds.dimension.value
+                    if hasattr(ds.dimension, "value")
+                    else ds.dimension,
                     "score": ds.score,
                     "confidence": ds.confidence,
                 }
@@ -1707,7 +1742,7 @@ class ThreeStagePipeline:
 
     def _eval_score_to_dict(self, score: EvaluationScore) -> dict:
         overall_rating = score.overall_rating
-        if hasattr(overall_rating, 'value'):
+        if hasattr(overall_rating, "value"):
             overall_rating = overall_rating.value
         return {
             "agent_id": score.agent_id,

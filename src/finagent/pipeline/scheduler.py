@@ -18,6 +18,7 @@ from .quota import QuotaConfig, ResourceQuota
 
 class TaskPriority(StrEnum):
     """任务优先级"""
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -26,6 +27,7 @@ class TaskPriority(StrEnum):
 
 class ScheduledTaskStatus(StrEnum):
     """调度任务状态"""
+
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -36,6 +38,7 @@ class ScheduledTaskStatus(StrEnum):
 @dataclass
 class ScheduledTask:
     """调度任务"""
+
     task_id: str
     evaluation_id: str
     agent_id: str
@@ -51,6 +54,7 @@ class ScheduledTask:
 
 class SchedulerConfig(BaseModel):
     """调度器配置"""
+
     max_concurrent_evaluations: int = Field(default=3, description="最大并发评测数")
     max_queue_size: int = Field(default=50, description="最大队列大小")
     task_timeout: int = Field(default=43200, description="任务超时(秒)，默认12小时")
@@ -144,10 +148,7 @@ class EvaluationScheduler:
         while True:
             async with self._lock:
                 # 检查是否有空闲槽位
-                while (
-                    len(self._running) < self.config.max_concurrent_evaluations
-                    and self._queue
-                ):
+                while len(self._running) < self.config.max_concurrent_evaluations and self._queue:
                     # 检查资源配额
                     if not self._quota.can_allocate():
                         break
@@ -161,9 +162,7 @@ class EvaluationScheduler:
                     self._quota.allocate(task.evaluation_id)
 
                     # 启动任务（异步）
-                    asyncio.create_task(
-                        self._execute_task(task)
-                    )
+                    asyncio.create_task(self._execute_task(task))
 
             await asyncio.sleep(1)
 

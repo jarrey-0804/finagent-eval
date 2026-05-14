@@ -15,14 +15,16 @@ from dataclasses import dataclass, field
 @dataclass
 class MetricsConfig:
     """指标配置"""
+
     enabled: bool = True
     collection_interval: int = 15  # 采集间隔(秒)
-    retention_hours: int = 24      # 数据保留时间(小时)
+    retention_hours: int = 24  # 数据保留时间(小时)
 
 
 @dataclass
 class MetricPoint:
     """指标数据点"""
+
     name: str
     value: float
     labels: dict[str, str] = field(default_factory=dict)
@@ -138,15 +140,30 @@ class MetricsCollector:
 
     def record_evaluation_start(self, agent_id: str, eval_mode: str):
         """记录评测开始"""
-        self.increment_counter("finagent_evaluations_total", labels={"agent_id": agent_id, "mode": eval_mode})
-        self.set_gauge("finagent_evaluations_active", self.get_gauge("finagent_evaluations_active") + 1)
+        self.increment_counter(
+            "finagent_evaluations_total", labels={"agent_id": agent_id, "mode": eval_mode}
+        )
+        self.set_gauge(
+            "finagent_evaluations_active", self.get_gauge("finagent_evaluations_active") + 1
+        )
 
-    def record_evaluation_complete(self, agent_id: str, eval_mode: str, success: bool, duration_s: float):
+    def record_evaluation_complete(
+        self, agent_id: str, eval_mode: str, success: bool, duration_s: float
+    ):
         """记录评测完成"""
-        self.set_gauge("finagent_evaluations_active", max(0, self.get_gauge("finagent_evaluations_active") - 1))
+        self.set_gauge(
+            "finagent_evaluations_active", max(0, self.get_gauge("finagent_evaluations_active") - 1)
+        )
         status = "success" if success else "failure"
-        self.increment_counter("finagent_evaluations_completed_total", labels={"agent_id": agent_id, "mode": eval_mode, "status": status})
-        self.observe("finagent_evaluation_duration_seconds", duration_s, labels={"agent_id": agent_id, "mode": eval_mode})
+        self.increment_counter(
+            "finagent_evaluations_completed_total",
+            labels={"agent_id": agent_id, "mode": eval_mode, "status": status},
+        )
+        self.observe(
+            "finagent_evaluation_duration_seconds",
+            duration_s,
+            labels={"agent_id": agent_id, "mode": eval_mode},
+        )
 
     def record_llm_call(self, model: str, latency_ms: float, tokens: int, cost_usd: float):
         """记录LLM调用"""
@@ -158,7 +175,10 @@ class MetricsCollector:
     def record_mcp_call(self, server: str, tool: str, success: bool):
         """记录MCP工具调用"""
         status = "success" if success else "failure"
-        self.increment_counter("finagent_mcp_tool_calls_total", labels={"server": server, "tool": tool, "status": status})
+        self.increment_counter(
+            "finagent_mcp_tool_calls_total",
+            labels={"server": server, "tool": tool, "status": status},
+        )
 
     def record_mcp_health(self, server: str, healthy: bool):
         """记录MCP健康状态"""
@@ -171,8 +191,7 @@ class MetricsCollector:
             "counters": dict(self._counters),
             "gauges": dict(self._gauges),
             "histograms": {
-                key: self.get_histogram_stats(*self._parse_key(key))
-                for key in self._histograms
+                key: self.get_histogram_stats(*self._parse_key(key)) for key in self._histograms
             },
         }
 

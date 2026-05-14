@@ -12,8 +12,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .metrics import MetricsCollector
     from .data_quality import DataQualityMonitor
+    from .metrics import MetricsCollector
 
 
 class DataQualityMetricsExporter:

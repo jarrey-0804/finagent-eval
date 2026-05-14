@@ -24,7 +24,7 @@ def main():
 
     # serve 命令
     serve_parser = subparsers.add_parser("serve", help="启动API服务")
-    serve_parser.add_argument("--host", default="0.0.0.0", help="监听地址")
+    serve_parser.add_argument("--host", default="127.0.0.1", help="监听地址 (默认仅本地访问，生产环境请配置为 0.0.0.0)")
     serve_parser.add_argument("--port", type=int, default=8000, help="监听端口")
     serve_parser.add_argument("--config", type=str, help="配置文件路径")
     serve_parser.add_argument("--workers", type=int, default=4, help="工作进程数")
@@ -47,8 +47,12 @@ def main():
     test_parser = subparsers.add_parser("test", help="运行对抗性测试")
     test_parser.add_argument("--agent-id", required=True, help="Agent ID")
     test_parser.add_argument("--endpoint", help="Agent HTTP端点URL")
-    test_parser.add_argument("--level", choices=["baseline", "noisy", "meta_cognitive", "adversarial", "all"],
-                             default="all", help="测试等级")
+    test_parser.add_argument(
+        "--level",
+        choices=["baseline", "noisy", "meta_cognitive", "adversarial", "all"],
+        default="all",
+        help="测试等级",
+    )
     test_parser.add_argument("--output", "-o", help="输出文件路径")
 
     # config 命令
@@ -99,6 +103,7 @@ def handle_serve(args):
 
 def handle_eval(args):
     """处理eval命令"""
+
     async def run():
         from . import AgentConfig, EvalMode, EvalPipeline, HTTPAdapter, PipelineConfig
 
@@ -148,11 +153,16 @@ def handle_eval(args):
         # 保存结果
         if args.output:
             import json
+
             output = {
                 "agent_id": args.agent_id,
                 "mode": args.mode,
-                "overall_score": result.evaluation_score.overall_score if result.evaluation_score else None,
-                "rating": result.evaluation_score.overall_rating.value if result.evaluation_score else None,
+                "overall_score": result.evaluation_score.overall_score
+                if result.evaluation_score
+                else None,
+                "rating": result.evaluation_score.overall_rating.value
+                if result.evaluation_score
+                else None,
                 "report": result.report,
             }
 
@@ -201,6 +211,7 @@ def handle_generate(args):
 
 def handle_test(args):
     """处理test命令"""
+
     async def run():
         from . import AdversarialConfig, AdversarialTester, AgentConfig, HTTPAdapter
         from .adversarial import AdversarialLevel
@@ -253,6 +264,7 @@ def handle_test(args):
         # 保存结果
         if args.output:
             import json
+
             output = {
                 "agent_id": args.agent_id,
                 "level": args.level,

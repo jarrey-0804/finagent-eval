@@ -13,6 +13,7 @@ from .judge import ConsensusMethod, JudgeResult
 @dataclass
 class ConsensusResult:
     """共识结果"""
+
     final_score: float
     icc: float
     method: ConsensusMethod

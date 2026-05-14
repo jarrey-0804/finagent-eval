@@ -7,9 +7,9 @@
 
 import json
 import time
-from dataclasses import dataclass
-from typing import Any, TypeVar, Generic
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -17,6 +17,7 @@ T = TypeVar("T")
 @dataclass
 class CacheEntry(Generic[T]):
     """缓存条目"""
+
     value: T
     expires_at: float
     created_at: float
@@ -214,8 +215,7 @@ class MCPDataCache:
         if isinstance(self._cache._backend, MemoryCacheBackend):
             prefix = f"mcp:{server}:"
             keys_to_delete = [
-                key for key in self._cache._backend._cache.keys()
-                if key.startswith(prefix)
+                key for key in self._cache._backend._cache.keys() if key.startswith(prefix)
             ]
             for key in keys_to_delete:
                 await self._cache.delete(key)
@@ -227,8 +227,7 @@ class MCPDataCache:
         if isinstance(self._cache._backend, MemoryCacheBackend):
             prefix = f"mcp:{server}:{tool}:"
             keys_to_delete = [
-                key for key in self._cache._backend._cache.keys()
-                if key.startswith(prefix)
+                key for key in self._cache._backend._cache.keys() if key.startswith(prefix)
             ]
             for key in keys_to_delete:
                 await self._cache.delete(key)

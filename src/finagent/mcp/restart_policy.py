@@ -14,15 +14,17 @@ from .._compat import StrEnum
 
 class RestartStrategy(StrEnum):
     """重启策略"""
-    IMMEDIATE = "immediate"           # 立即重启
-    DELAYED = "delayed"               # 延迟重启
+
+    IMMEDIATE = "immediate"  # 立即重启
+    DELAYED = "delayed"  # 延迟重启
     EXPONENTIAL_BACKOFF = "exponential_backoff"  # 指数退避
-    CIRCUIT_BREAKER = "circuit_breaker"          # 熔断器
+    CIRCUIT_BREAKER = "circuit_breaker"  # 熔断器
 
 
 @dataclass
 class RestartRecord:
     """重启记录"""
+
     server_name: str
     attempt: int
     strategy: RestartStrategy
@@ -112,9 +114,7 @@ class RestartPolicy:
             await asyncio.sleep(delay)
 
         # 增加尝试计数
-        self._attempt_counts[server_name] = (
-            self._attempt_counts.get(server_name, 0) + 1
-        )
+        self._attempt_counts[server_name] = self._attempt_counts.get(server_name, 0) + 1
         attempts = self._attempt_counts[server_name]
 
         # 执行重启
@@ -173,9 +173,7 @@ class RestartPolicy:
                 for name, count in self._attempt_counts.items()
             },
             "total_restarts": len(self._records),
-            "successful_restarts": sum(
-                1 for r in self._records if r.success
-            ),
+            "successful_restarts": sum(1 for r in self._records if r.success),
         }
 
     def _calculate_delay(self, attempt: int) -> float:
@@ -187,7 +185,7 @@ class RestartPolicy:
             return self.base_delay
 
         elif self.strategy == RestartStrategy.EXPONENTIAL_BACKOFF:
-            delay = self.base_delay * (2 ** attempt)
+            delay = self.base_delay * (2**attempt)
             return min(delay, self.max_delay)
 
         elif self.strategy == RestartStrategy.CIRCUIT_BREAKER:

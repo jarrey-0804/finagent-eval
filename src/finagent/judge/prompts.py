@@ -12,6 +12,7 @@ from ..interface.models import EvalDimension, EvalResponse, EvalTask
 @dataclass
 class PromptTemplate:
     """提示模板"""
+
     name: str
     system_template: str
     user_template: str
@@ -27,7 +28,7 @@ class PromptTemplate:
         system_prompt = self.system_template.format(dimension=dimension.value)
 
         user_prompt = self.user_template.format(
-            query=task.input_data.get('query', ''),
+            query=task.input_data.get("query", ""),
             output=response.output or "（无输出）",
             reference=reference or "（无参考答案）",
             error=response.error or "",

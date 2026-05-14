@@ -12,9 +12,9 @@ from pydantic import BaseModel, Field
 
 class DatabaseConfig(BaseModel):
     """数据库配置"""
+
     url: str = Field(
-        default="postgresql://localhost:5432/finagent_eval",
-        description="数据库连接URL"
+        default="postgresql://localhost:5432/finagent_eval", description="数据库连接URL"
     )
     pool_size: int = Field(default=10, description="连接池大小")
     max_overflow: int = Field(default=20, description="最大溢出连接数")
@@ -22,6 +22,7 @@ class DatabaseConfig(BaseModel):
 
 class LLMConfig(BaseModel):
     """LLM配置"""
+
     openai_api_key: str | None = Field(None, description="OpenAI API密钥")
     anthropic_api_key: str | None = Field(None, description="Anthropic API密钥")
     deepseek_api_key: str | None = Field(None, description="DeepSeek API密钥")
@@ -33,6 +34,7 @@ class LLMConfig(BaseModel):
 
 class EvaluationConfig(BaseModel):
     """评测配置"""
+
     default_mode: str = Field(default="full", description="默认评测模式")
     max_concurrent_tasks: int = Field(default=5, description="最大并发任务数")
     task_timeout: int = Field(default=300, description="任务超时时间(秒)")
@@ -44,7 +46,8 @@ class EvaluationConfig(BaseModel):
 
 class APIConfig(BaseModel):
     """API配置"""
-    host: str = Field(default="0.0.0.0", description="监听地址")
+
+    host: str = Field(default="127.0.0.1", description="监听地址 (默认仅本地访问)")
     port: int = Field(default=8000, description="监听端口")
     workers: int = Field(default=4, description="工作进程数")
     cors_origins: list[str] = Field(default=["*"], description="CORS允许的源")
@@ -52,16 +55,17 @@ class APIConfig(BaseModel):
 
 class LoggingConfig(BaseModel):
     """日志配置"""
+
     level: str = Field(default="INFO", description="日志级别")
     format: str = Field(
-        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        description="日志格式"
+        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s", description="日志格式"
     )
     file: str | None = Field(None, description="日志文件路径")
 
 
 class Config(BaseModel):
     """主配置"""
+
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     evaluation: EvaluationConfig = Field(default_factory=EvaluationConfig)

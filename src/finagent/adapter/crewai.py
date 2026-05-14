@@ -99,7 +99,9 @@ class CrewAIAdapter(FinancialAgentInterface):
         if hasattr(self._crew, "reset_memory"):
             self._crew.reset_memory()
         if hasattr(self._crew, "agent"):
-            crew_agent = self._crew.agent if isinstance(self._crew.agent, list) else [self._crew.agent]
+            crew_agent = (
+                self._crew.agent if isinstance(self._crew.agent, list) else [self._crew.agent]
+            )
             for agent in crew_agent:
                 if hasattr(agent, "reset_memory"):
                     agent.reset_memory()
@@ -107,12 +109,14 @@ class CrewAIAdapter(FinancialAgentInterface):
     def serialize_state(self, state: AgentState) -> bytes:
         """序列化状态"""
         import json
-        return json.dumps(state.model_dump()).encode('utf-8')
+
+        return json.dumps(state.model_dump()).encode("utf-8")
 
     def deserialize_state(self, data: bytes) -> AgentState:
         """反序列化状态"""
         import json
-        return AgentState(**json.loads(data.decode('utf-8')))
+
+        return AgentState(**json.loads(data.decode("utf-8")))
 
     def get_trace(self, task_id: str) -> dict | None:
         """获取指定任务的执行追踪"""
@@ -134,9 +138,11 @@ class CrewAIAdapter(FinancialAgentInterface):
             for agent_result in result.get("tasks_output", []):
                 if hasattr(agent_result, "tools_output") and agent_result.tools_output:
                     for tool_out in agent_result.tools_output:
-                        tool_calls.append({
-                            "name": getattr(tool_out, "tool_name", ""),
-                            "args": getattr(tool_out, "args", {}),
-                            "success": True,
-                        })
+                        tool_calls.append(
+                            {
+                                "name": getattr(tool_out, "tool_name", ""),
+                                "args": getattr(tool_out, "args", {}),
+                                "success": True,
+                            }
+                        )
         return tool_calls

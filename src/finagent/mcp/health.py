@@ -13,6 +13,7 @@ from .._compat import StrEnum
 
 class HealthStatus(StrEnum):
     """健康状态"""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -22,6 +23,7 @@ class HealthStatus(StrEnum):
 @dataclass
 class HealthCheckResult:
     """健康检查结果"""
+
     server_name: str
     status: HealthStatus
     latency_ms: float
@@ -69,6 +71,7 @@ class MCPHealthChecker:
             if health_check_url:
                 # HTTP 健康检查
                 import httpx
+
                 async with httpx.AsyncClient() as client:
                     response = await asyncio.wait_for(
                         client.get(health_check_url),
@@ -114,9 +117,7 @@ class MCPHealthChecker:
 
         # 检查是否需要触发回调
         if status == HealthStatus.UNHEALTHY:
-            self._failure_counts[server_name] = (
-                self._failure_counts.get(server_name, 0) + 1
-            )
+            self._failure_counts[server_name] = self._failure_counts.get(server_name, 0) + 1
 
             if self._failure_counts[server_name] >= self.max_consecutive_failures:
                 for callback in self._callbacks:
@@ -137,15 +138,10 @@ class MCPHealthChecker:
         Args:
             servers: {server_name: health_check_url}
         """
-        tasks = [
-            self.check_server(name, url)
-            for name, url in servers.items()
-        ]
+        tasks = [self.check_server(name, url) for name, url in servers.items()]
         results = await asyncio.gather(*tasks)
 
-        return {
-            r.server_name: r for r in results
-        }
+        return {r.server_name: r for r in results}
 
     def get_last_result(self, server_name: str) -> HealthCheckResult | None:
         """获取最近一次检查结果"""
@@ -160,6 +156,7 @@ class MCPHealthChecker:
         servers: dict[str, str | None],
     ):
         """启动定期检查"""
+
         async def _check_loop():
             while True:
                 await self.check_all(servers)

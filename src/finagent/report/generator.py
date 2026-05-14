@@ -13,6 +13,7 @@ from .._compat import StrEnum
 
 class ReportFormat(StrEnum):
     """报告格式"""
+
     JSON = "json"
     MARKDOWN = "markdown"
     HTML = "html"
@@ -21,6 +22,7 @@ class ReportFormat(StrEnum):
 @dataclass
 class ReportSection:
     """报告章节"""
+
     title: str
     content: str
     order: int = 0
@@ -69,46 +71,58 @@ class ReportGenerator:
         sections = []
 
         # 1. 概要
-        sections.append(ReportSection(
-            title="评测概要",
-            content=self._build_summary(data),
-            order=1,
-        ))
+        sections.append(
+            ReportSection(
+                title="评测概要",
+                content=self._build_summary(data),
+                order=1,
+            )
+        )
 
         # 2. 维度评分（quick模式下不包含雷达图）
         if "dimension_scores" in data:
-            charts = [] if skip_adversarial else [{"type": "radar", "data": data["dimension_scores"]}]
-            sections.append(ReportSection(
-                title="维度评分详情",
-                content=self._build_dimension_scores(data),
-                order=2,
-                charts=charts,
-            ))
+            charts = (
+                [] if skip_adversarial else [{"type": "radar", "data": data["dimension_scores"]}]
+            )
+            sections.append(
+                ReportSection(
+                    title="维度评分详情",
+                    content=self._build_dimension_scores(data),
+                    order=2,
+                    charts=charts,
+                )
+            )
 
         # 3. 任务详情
         if self.include_details and "task_details" in data:
-            sections.append(ReportSection(
-                title="任务评测详情",
-                content=self._build_task_details(data),
-                order=3,
-                charts=[{"type": "bar", "data": data["task_details"]}],
-            ))
+            sections.append(
+                ReportSection(
+                    title="任务评测详情",
+                    content=self._build_task_details(data),
+                    order=3,
+                    charts=[{"type": "bar", "data": data["task_details"]}],
+                )
+            )
 
         # 4. 对抗性测试（quick模式下跳过）
         if not skip_adversarial and "adversarial_results" in data:
-            sections.append(ReportSection(
-                title="对抗性测试结果",
-                content=self._build_adversarial_section(data),
-                order=4,
-            ))
+            sections.append(
+                ReportSection(
+                    title="对抗性测试结果",
+                    content=self._build_adversarial_section(data),
+                    order=4,
+                )
+            )
 
         # 5. 改进建议
         if "recommendations" in data:
-            sections.append(ReportSection(
-                title="改进建议",
-                content=self._build_recommendations(data["recommendations"]),
-                order=5,
-            ))
+            sections.append(
+                ReportSection(
+                    title="改进建议",
+                    content=self._build_recommendations(data["recommendations"]),
+                    order=5,
+                )
+            )
 
         sections.sort(key=lambda s: s.order)
         return sections
@@ -198,8 +212,7 @@ class ReportGenerator:
             },
             "evaluation_data": data,
             "sections": [
-                {"title": s.title, "content": s.content, "charts": s.charts}
-                for s in sections
+                {"title": s.title, "content": s.content, "charts": s.charts} for s in sections
             ],
         }
         return json.dumps(report, ensure_ascii=False, indent=2)
@@ -258,7 +271,7 @@ class ReportGenerator:
 </head>
 <body>
     <h1>金融AI Agent评测报告</h1>
-    <p>生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+    <p>生成时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
     <hr>
     {sections_html}
     <div class="footer">报告由 FinAgent-Eval 评测系统自动生成</div>
@@ -268,24 +281,29 @@ class ReportGenerator:
     def _markdown_to_html(self, md: str) -> str:
         """简单Markdown转HTML"""
         import re
+
         html = md
-        html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
-        html = re.sub(r'\|(.+)\|', lambda m: self._table_row_to_html(m.group(0)), html)
-        html = html.replace('\n', '<br>')
+        html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html)
+        html = re.sub(r"\|(.+)\|", lambda m: self._table_row_to_html(m.group(0)), html)
+        html = html.replace("\n", "<br>")
         return html
 
     def _table_row_to_html(self, row: str) -> str:
         """表格行转HTML"""
-        cells = [c.strip() for c in row.strip('|').split('|')]
-        if all(set(c) <= {'-', ' ', ':'} for c in cells):
+        cells = [c.strip() for c in row.strip("|").split("|")]
+        if all(set(c) <= {"-", " ", ":"} for c in cells):
             return ""  # 分隔行
         tag = "th" if "---" in row else "td"
         return "<tr>" + "".join(f"<{tag}>{c}</{tag}>" for c in cells) + "</tr>"
 
     def _score_to_level(self, score: float) -> str:
         """分数转等级"""
-        if score >= 95: return "S (卓越)"
-        if score >= 85: return "A (优秀)"
-        if score >= 70: return "B (良好)"
-        if score >= 60: return "C (合格)"
+        if score >= 95:
+            return "S (卓越)"
+        if score >= 85:
+            return "A (优秀)"
+        if score >= 70:
+            return "B (良好)"
+        if score >= 60:
+            return "C (合格)"
         return "D (不合格)"

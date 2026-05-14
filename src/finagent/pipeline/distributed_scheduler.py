@@ -28,15 +28,16 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RedisSchedulerConfig:
     """Redis 调度器配置"""
+
     redis_url: str = "redis://localhost:6379/0"
     max_concurrent_evaluations: int = 3
     max_queue_size: int = 50
-    task_timeout: int = 43200       # 12小时
+    task_timeout: int = 43200  # 12小时
     retry_limit: int = 2
     retry_delay: int = 30
-    heartbeat_interval: int = 10    # 心跳间隔（秒）
-    instance_ttl: int = 30          # 实例存活TTL（秒）
-    lock_ttl: int = 60              # 分布式锁TTL（秒）
+    heartbeat_interval: int = 10  # 心跳间隔（秒）
+    instance_ttl: int = 30  # 实例存活TTL（秒）
+    lock_ttl: int = 60  # 分布式锁TTL（秒）
     queue_key_prefix: str = "finagent:queue"
     running_key_prefix: str = "finagent:running"
     completed_key_prefix: str = "finagent:completed"
@@ -64,6 +65,7 @@ class RedisTaskStore:
         """初始化 Redis 连接"""
         try:
             import redis.asyncio as aioredis
+
             self._redis = aioredis.from_url(
                 self.config.redis_url,
                 decode_responses=True,
@@ -74,9 +76,7 @@ class RedisTaskStore:
             logger.info("Redis 连接成功: %s", self.config.redis_url)
         except Exception as e:
             self._available = False
-            logger.warning(
-                "Redis 连接失败，将使用内存模式: %s", e
-            )
+            logger.warning("Redis 连接失败，将使用内存模式: %s", e)
 
     async def close(self):
         """关闭 Redis 连接"""
@@ -109,13 +109,16 @@ class RedisTaskStore:
         try:
             pipe = self._redis.pipeline()
             # 存储任务详情
-            pipe.hset(task_hash_key, mapping={
-                "task_id": task_id,
-                "data": json.dumps(task_data, default=str),
-                "priority": str(priority),
-                "status": "queued",
-                "created_at": datetime.now().isoformat(),
-            })
+            pipe.hset(
+                task_hash_key,
+                mapping={
+                    "task_id": task_id,
+                    "data": json.dumps(task_data, default=str),
+                    "priority": str(priority),
+                    "status": "queued",
+                    "created_at": datetime.now().isoformat(),
+                },
+            )
             # 加入优先级队列（score 越小越优先）
             pipe.zadd(queue_key, {task_id: priority})
             # 设置任务详情 TTL（24小时）
@@ -193,11 +196,14 @@ class RedisTaskStore:
             task_hash_key = f"{self.config.queue_key_prefix}:task:{task_id}"
             completed_key = f"{self.config.completed_key_prefix}"
             pipe = self._redis.pipeline()
-            pipe.hset(task_hash_key, mapping={
-                "status": "completed",
-                "completed_at": datetime.now().isoformat(),
-                "result": json.dumps(result or {}, default=str),
-            })
+            pipe.hset(
+                task_hash_key,
+                mapping={
+                    "status": "completed",
+                    "completed_at": datetime.now().isoformat(),
+                    "result": json.dumps(result or {}, default=str),
+                },
+            )
             pipe.lpush(completed_key, task_id)
             pipe.ltrim(completed_key, 0, 999)  # 保留最近 1000 条
             await pipe.execute()
@@ -210,11 +216,14 @@ class RedisTaskStore:
             return
         try:
             task_hash_key = f"{self.config.queue_key_prefix}:task:{task_id}"
-            await self._redis.hset(task_hash_key, mapping={
-                "status": "failed",
-                "error": error,
-                "completed_at": datetime.now().isoformat(),
-            })
+            await self._redis.hset(
+                task_hash_key,
+                mapping={
+                    "status": "failed",
+                    "error": error,
+                    "completed_at": datetime.now().isoformat(),
+                },
+            )
         except Exception as e:
             logger.error("Redis mark_failed 失败: %s", e)
 
@@ -233,9 +242,7 @@ class RedisTaskStore:
         if not self.is_available:
             return 0
         try:
-            return await self._redis.scard(
-                f"{self.config.running_key_prefix}:{instance_id}"
-            )
+            return await self._redis.scard(f"{self.config.running_key_prefix}:{instance_id}")
         except Exception:
             return 0
 
@@ -265,11 +272,14 @@ class RedisTaskStore:
             return False
         try:
             lock_key = f"{self.config.lock_key_prefix}:{lock_name}"
-            return bool(await self._redis.set(
-                lock_key, instance_id,
-                nx=True,
-                ex=self.config.lock_ttl,
-            ))
+            return bool(
+                await self._redis.set(
+                    lock_key,
+                    instance_id,
+                    nx=True,
+                    ex=self.config.lock_ttl,
+                )
+            )
         except Exception:
             return False
 
@@ -301,11 +311,14 @@ class RedisTaskStore:
             return
         try:
             instance_key = f"{self.config.instance_key_prefix}:{instance_id}"
-            await self._redis.hset(instance_key, mapping={
-                "instance_id": instance_id,
-                "last_heartbeat": datetime.now().isoformat(),
-                "status": "active",
-            })
+            await self._redis.hset(
+                instance_key,
+                mapping={
+                    "instance_id": instance_id,
+                    "last_heartbeat": datetime.now().isoformat(),
+                    "status": "active",
+                },
+            )
             await self._redis.expire(instance_key, self.config.instance_ttl)
         except Exception:
             pass
@@ -422,7 +435,10 @@ class DistributedEvaluationScheduler:
         task_id = str(uuid.uuid4())
 
         priority_map = {
-            "urgent": 0, "high": 1, "normal": 2, "low": 3,
+            "urgent": 0,
+            "high": 1,
+            "normal": 2,
+            "low": 3,
         }
         priority_score = priority_map.get(priority, 2)
 
@@ -441,16 +457,21 @@ class DistributedEvaluationScheduler:
         else:
             # 内存模式回退
             async with self._lock:
-                self._memory_queue.append({
-                    "task_id": task_id,
-                    "priority": priority_score,
-                    "data": task_data,
-                })
+                self._memory_queue.append(
+                    {
+                        "task_id": task_id,
+                        "priority": priority_score,
+                        "data": task_data,
+                    }
+                )
                 self._memory_queue.sort(key=lambda x: x["priority"])
 
         logger.info(
             "任务已提交: task_id=%s, eval=%s, agent=%s, priority=%s, mode=%s",
-            task_id, evaluation_id, agent_id, priority,
+            task_id,
+            evaluation_id,
+            agent_id,
+            priority,
             "distributed" if self._store.is_available else "memory",
         )
         return task_id
@@ -500,9 +521,7 @@ class DistributedEvaluationScheduler:
             self._memory_running[task_id] = task_data
 
         # 启动任务执行
-        exec_task = asyncio.create_task(
-            self._execute_task(task_id, task_data)
-        )
+        exec_task = asyncio.create_task(self._execute_task(task_id, task_data))
         self._running_tasks[task_id] = exec_task
 
     async def _execute_task(self, task_id: str, task_data: dict):

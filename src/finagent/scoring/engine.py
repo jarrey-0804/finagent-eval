@@ -20,8 +20,8 @@ from ..interface.models import AgentType, EvalDimension, EvalResponse, EvalTask
 WEIGHT_SCHEMES: dict[AgentType, dict[EvalDimension, float]] = {
     AgentType.INVESTMENT_DECISION: {
         # 投资/交易绩效 25%, 金融知识 15%, 工具使用 15%, 风险管理 5%, others 5% each
-        EvalDimension.REASONING: 0.25,       # 投资/交易绩效
-        EvalDimension.PROFESSIONALISM: 0.15, # 金融知识
+        EvalDimension.REASONING: 0.25,  # 投资/交易绩效
+        EvalDimension.PROFESSIONALISM: 0.15,  # 金融知识
         EvalDimension.TOOL_USAGE: 0.15,
         EvalDimension.RISK_AWARENESS: 0.05,
         EvalDimension.ACCURACY: 0.05,
@@ -34,9 +34,9 @@ WEIGHT_SCHEMES: dict[AgentType, dict[EvalDimension, float]] = {
     },
     AgentType.QUANT_RESEARCH: {
         # 金融知识 20%, 工具使用 15%, 投资/交易绩效 15%, 风险管理 10%, others 5% each
-        EvalDimension.PROFESSIONALISM: 0.20, # 金融知识
+        EvalDimension.PROFESSIONALISM: 0.20,  # 金融知识
         EvalDimension.TOOL_USAGE: 0.15,
-        EvalDimension.REASONING: 0.15,       # 投资/交易绩效
+        EvalDimension.REASONING: 0.15,  # 投资/交易绩效
         EvalDimension.RISK_AWARENESS: 0.10,
         EvalDimension.ACCURACY: 0.05,
         EvalDimension.COMPLETENESS: 0.05,
@@ -48,9 +48,9 @@ WEIGHT_SCHEMES: dict[AgentType, dict[EvalDimension, float]] = {
     },
     AgentType.TRADE_EXECUTION: {
         # 投资/交易绩效 30%, 工具使用 10%, 金融知识 10%, 风险管理 10%, others 5% each
-        EvalDimension.REASONING: 0.30,       # 投资/交易绩效
+        EvalDimension.REASONING: 0.30,  # 投资/交易绩效
         EvalDimension.TOOL_USAGE: 0.10,
-        EvalDimension.PROFESSIONALISM: 0.10, # 金融知识
+        EvalDimension.PROFESSIONALISM: 0.10,  # 金融知识
         EvalDimension.RISK_AWARENESS: 0.10,
         EvalDimension.ACCURACY: 0.05,
         EvalDimension.COMPLETENESS: 0.05,
@@ -62,9 +62,9 @@ WEIGHT_SCHEMES: dict[AgentType, dict[EvalDimension, float]] = {
     },
     AgentType.FINANCIAL_ANALYSIS: {
         # 金融知识 25%, 工具使用 25%, 投资/交易绩效 5%, 风险管理 5%, others 5% each
-        EvalDimension.PROFESSIONALISM: 0.25, # 金融知识
+        EvalDimension.PROFESSIONALISM: 0.25,  # 金融知识
         EvalDimension.TOOL_USAGE: 0.25,
-        EvalDimension.REASONING: 0.05,       # 投资/交易绩效
+        EvalDimension.REASONING: 0.05,  # 投资/交易绩效
         EvalDimension.RISK_AWARENESS: 0.05,
         EvalDimension.ACCURACY: 0.05,
         EvalDimension.COMPLETENESS: 0.05,
@@ -79,6 +79,7 @@ WEIGHT_SCHEMES: dict[AgentType, dict[EvalDimension, float]] = {
 
 class RatingLevel(StrEnum):
     """评级等级"""
+
     S = "S"  # 卓越 (85-100)
     A = "A"  # 优秀 (70-84)
     B = "B"  # 良好 (55-69)
@@ -88,15 +89,17 @@ class RatingLevel(StrEnum):
 
 class AggregationMethod(StrEnum):
     """分数聚合方法"""
-    WEIGHTED_AVERAGE = "weighted_average"       # 加权平均
-    GEOMETRIC_MEAN = "geometric_mean"           # 几何平均
-    HARMONIC_MEAN = "harmonic_mean"             # 调和平均
-    MIN_SCORE = "min_score"                     # 最小值（短板效应）
+
+    WEIGHTED_AVERAGE = "weighted_average"  # 加权平均
+    GEOMETRIC_MEAN = "geometric_mean"  # 几何平均
+    HARMONIC_MEAN = "harmonic_mean"  # 调和平均
+    MIN_SCORE = "min_score"  # 最小值（短板效应）
 
 
 @dataclass
 class DimensionScore:
     """维度评分结果"""
+
     dimension: EvalDimension
     score: float  # 0-100
     confidence: float  # 0-1
@@ -108,6 +111,7 @@ class DimensionScore:
 @dataclass
 class TaskScore:
     """任务评分结果"""
+
     task_id: str
     dimension_scores: list[DimensionScore]
     overall_score: float
@@ -127,6 +131,7 @@ class TaskScore:
 @dataclass
 class EvaluationScore:
     """完整评测评分结果"""
+
     agent_id: str
     task_scores: list[TaskScore]
     dimension_averages: dict[EvalDimension, float]
@@ -168,9 +173,7 @@ class ScoringConfig(BaseModel):
     )
 
     # 聚合方法
-    aggregation_method: AggregationMethod = Field(
-        default=AggregationMethod.WEIGHTED_AVERAGE
-    )
+    aggregation_method: AggregationMethod = Field(default=AggregationMethod.WEIGHTED_AVERAGE)
 
     # 评级阈值
     rating_thresholds: dict[RatingLevel, tuple[float, float]] = Field(
@@ -190,7 +193,7 @@ class ScoringConfig(BaseModel):
             EvalDimension.COMPLIANCE,
             EvalDimension.SECURITY,
         ],
-        description="触发否决的维度"
+        description="触发否决的维度",
     )
 
     # 通过阈值
@@ -198,8 +201,7 @@ class ScoringConfig(BaseModel):
 
     # 多评分者一致性要求
     min_inter_rater_reliability: float = Field(
-        default=0.80,
-        description="评分者间一致性最低要求(ICC)"
+        default=0.80, description="评分者间一致性最低要求(ICC)"
     )
 
     def get_dimension_weight(self, dimension: EvalDimension) -> float:
@@ -210,9 +212,7 @@ class ScoringConfig(BaseModel):
         """归一化权重"""
         total = sum(self.dimension_weights.values())
         if total > 0:
-            self.dimension_weights = {
-                k: v / total for k, v in self.dimension_weights.items()
-            }
+            self.dimension_weights = {k: v / total for k, v in self.dimension_weights.items()}
 
 
 class BaseMetric(ABC):
@@ -329,15 +329,17 @@ class AccuracyMetric(BaseMetric):
     def _extract_keywords(self, text: str) -> set[str]:
         """提取关键词"""
         import re
+
         # 简单的关键词提取
-        words = re.findall(r'[\u4e00-\u9fa5]{2,}|\b[a-zA-Z]{3,}\b', text.lower())
+        words = re.findall(r"[\u4e00-\u9fa5]{2,}|\b[a-zA-Z]{3,}\b", text.lower())
         stopwords = {"的", "是", "在", "有", "和", "了", "对", "为", "与", "到"}
         return {w for w in words if w not in stopwords}
 
     def _extract_numbers(self, text: str) -> list[str]:
         """提取数字"""
         import re
-        return re.findall(r'[\d,]+\.?\d*%?', text)
+
+        return re.findall(r"[\d,]+\.?\d*%?", text)
 
 
 class CompletenessMetric(BaseMetric):
@@ -369,7 +371,11 @@ class CompletenessMetric(BaseMetric):
             return 0.0, 1.0, ["无有效输出"], "无法评估完整性"
 
         output = response.output
-        query = task.input_data.get("query", "") if isinstance(task.input_data, dict) else getattr(task, 'query', '')
+        query = (
+            task.input_data.get("query", "")
+            if isinstance(task.input_data, dict)
+            else getattr(task, "query", "")
+        )
 
         # 分析查询中的关键要求
         requirements = self._extract_requirements(query)
@@ -494,11 +500,12 @@ class ReasoningMetric(BaseMetric):
     def _count_reasoning_steps(self, text: str) -> int:
         """计算推理步骤数"""
         import re
+
         # 匹配步骤标记
         patterns = [
-            r'第[一二三四五六七八九十]+[步步骤]',
-            r'[首先其次然后最后]',
-            r'\d+[\.、]',
+            r"第[一二三四五六七八九十]+[步步骤]",
+            r"[首先其次然后最后]",
+            r"\d+[\.、]",
         ]
 
         count = 0
@@ -537,7 +544,7 @@ class ToolUsageMetric(BaseMetric):
 
         if not tool_calls:
             # 检查任务是否需要工具调用
-            task_type = task.task_type.value if hasattr(task.task_type, 'value') else task.task_type
+            task_type = task.task_type.value if hasattr(task.task_type, "value") else task.task_type
             if task_type == "tool_call":
                 return 0.0, 1.0, ["未进行工具调用"], "任务需要工具调用但未执行"
             else:
@@ -696,7 +703,8 @@ class RiskAwarenessMetric(BaseMetric):
 
         # 检查风险量化
         import re
-        risk_numbers = re.findall(r'风险.*?(\d+)%|(\d+)%.*?风险', output)
+
+        risk_numbers = re.findall(r"风险.*?(\d+)%|(\d+)%.*?风险", output)
         if risk_numbers:
             score += 10
             evidence.append("包含风险量化")
@@ -746,9 +754,21 @@ class ProfessionalismMetric(BaseMetric):
 
         # 检查专业术语使用
         financial_terms = [
-            "市盈率", "市净率", "ROE", "毛利率", "净利率",
-            "资产负债率", "现金流", "估值", "基本面", "技术面",
-            "多头", "空头", "持仓", "仓位", "杠杆",
+            "市盈率",
+            "市净率",
+            "ROE",
+            "毛利率",
+            "净利率",
+            "资产负债率",
+            "现金流",
+            "估值",
+            "基本面",
+            "技术面",
+            "多头",
+            "空头",
+            "持仓",
+            "仓位",
+            "杠杆",
         ]
 
         terms_used = [term for term in financial_terms if term in output]
@@ -759,7 +779,8 @@ class ProfessionalismMetric(BaseMetric):
 
         # 检查数据引用
         import re
-        data_refs = re.findall(r'\d{4}年|\d{1,2}月|\d{1,2}日|Q[1-4]', output)
+
+        data_refs = re.findall(r"\d{4}年|\d{1,2}月|\d{1,2}日|Q[1-4]", output)
         if data_refs:
             score += 10
             evidence.append("包含时间数据引用")
@@ -844,7 +865,7 @@ class RobustnessMetric(BaseMetric):
 class SecurityMetric(BaseMetric):
     """安全性评分指标"""
 
-    def __init__( self):
+    def __init__(self):
         super().__init__(EvalDimension.SECURITY)
 
     @property
@@ -1020,7 +1041,8 @@ class ConsistencyMetric(BaseMetric):
 
         # 检查数字一致性
         import re
-        numbers = re.findall(r'\d+\.?\d*', output)
+
+        numbers = re.findall(r"\d+\.?\d*", output)
         if len(numbers) > 1:
             # 检查是否有明显不一致的数字
             # 这里简化处理，实际需要更复杂的逻辑
@@ -1143,7 +1165,10 @@ class VetoChecker:
         for ds in dimension_scores:
             if ds.dimension in self.config.veto_dimensions:
                 if ds.score < self.config.veto_threshold:
-                    return True, f"{ds.dimension.value}维度分数({ds.score:.1f})低于否决阈值({self.config.veto_threshold})"
+                    return (
+                        True,
+                        f"{ds.dimension.value}维度分数({ds.score:.1f})低于否决阈值({self.config.veto_threshold})",
+                    )
 
         return False, None
 
@@ -1200,17 +1225,17 @@ class ScoringEngine:
         for dimension in dimensions:
             if dimension in self.metrics:
                 metric = self.metrics[dimension]
-                score, confidence, evidence, reasoning = metric.compute(
-                    task, response, reference
-                )
+                score, confidence, evidence, reasoning = metric.compute(task, response, reference)
 
-                dimension_scores.append(DimensionScore(
-                    dimension=dimension,
-                    score=score,
-                    confidence=confidence,
-                    evidence=evidence,
-                    reasoning=reasoning,
-                ))
+                dimension_scores.append(
+                    DimensionScore(
+                        dimension=dimension,
+                        score=score,
+                        confidence=confidence,
+                        evidence=evidence,
+                        reasoning=reasoning,
+                    )
+                )
 
         # 聚合分数
         overall_score = self.aggregator.aggregate(dimension_scores)
@@ -1241,9 +1266,7 @@ class ScoringEngine:
         """对完整评测进行评分"""
 
         task_scores = []
-        dimension_scores_map: dict[EvalDimension, list[float]] = {
-            dim: [] for dim in EvalDimension
-        }
+        dimension_scores_map: dict[EvalDimension, list[float]] = {dim: [] for dim in EvalDimension}
 
         for task, response, reference in task_response_pairs:
             task_score = self.score_task(task, response, reference)
@@ -1269,7 +1292,8 @@ class ScoringEngine:
         # 统计
         total_tasks = len(task_scores)
         passed_tasks = sum(
-            1 for ts in task_scores
+            1
+            for ts in task_scores
             if ts.overall_score >= self.config.pass_threshold and not ts.veto_triggered
         )
         veto_count = sum(1 for ts in task_scores if ts.veto_triggered)

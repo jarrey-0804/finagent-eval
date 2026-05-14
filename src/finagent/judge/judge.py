@@ -23,25 +23,28 @@ logger = logging.getLogger(__name__)
 
 class LLMProvider(StrEnum):
     """LLM提供商"""
+
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     DEEPSEEK = "deepseek"
     DASHSCOPE = "dashscope"  # 阿里云百炼
-    ZHIPU = "zhipu"          # 智谱GLM
+    ZHIPU = "zhipu"  # 智谱GLM
     CUSTOM = "custom"
 
 
 class ConsensusMethod(StrEnum):
     """共识方法"""
-    MAJORITY_VOTE = "majority_vote"       # 多数投票
+
+    MAJORITY_VOTE = "majority_vote"  # 多数投票
     WEIGHTED_AVERAGE = "weighted_average"  # 加权平均
-    MEDIAN = "median"                      # 中位数
-    ICC_BASED = "icc_based"               # 基于ICC的加权
+    MEDIAN = "median"  # 中位数
+    ICC_BASED = "icc_based"  # 基于ICC的加权
 
 
 @dataclass
 class JudgeResult:
     """Judge评分结果"""
+
     dimension: EvalDimension
     score: float  # 0-100
     confidence: float  # 0-1
@@ -55,6 +58,7 @@ class JudgeResult:
 @dataclass
 class MultiJudgeResult:
     """多模型评分结果"""
+
     dimension: EvalDimension
     scores: list[float]
     final_score: float
@@ -109,9 +113,7 @@ class JudgeConfig(BaseModel):
     )
 
     # 共识方法
-    consensus_method: ConsensusMethod = Field(
-        default=ConsensusMethod.WEIGHTED_AVERAGE
-    )
+    consensus_method: ConsensusMethod = Field(default=ConsensusMethod.WEIGHTED_AVERAGE)
 
     # ICC阈值
     min_icc: float = Field(default=0.80, description="最低ICC要求")
@@ -337,7 +339,8 @@ class DashScopeModel(BaseLLMModel):
 
             client = openai.AsyncOpenAI(
                 api_key=self.config.api_key,
-                base_url=self.config.base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                base_url=self.config.base_url
+                or "https://dashscope.aliyuncs.com/compatible-mode/v1",
             )
 
             messages = []
@@ -501,7 +504,7 @@ class JudgePromptBuilder:
         user_prompt = f"""请评估以下AI Agent的回答：
 
 【问题】
-{task.input_data.get('query', '')}
+{task.input_data.get("query", "")}
 
 【Agent回答】
 {response.output if response.output else "（无输出）"}
@@ -585,7 +588,7 @@ class ConsensusBuilder:
             # 离散化后投票
             bins = [0, 20, 40, 60, 80, 100]
             binned_scores = [
-                bins[min(range(len(bins)-1), key=lambda i: abs(s - (bins[i]+bins[i+1])/2))]
+                bins[min(range(len(bins) - 1), key=lambda i: abs(s - (bins[i] + bins[i + 1]) / 2))]
                 for s in scores
             ]
             consensus = statistics.mode(binned_scores)
@@ -606,7 +609,9 @@ class ConsensusBuilder:
                 # ICC越高，权重差异越小
                 adjusted_weights = [w * (0.5 + 0.5 * icc) for w in weights]
                 total = sum(adjusted_weights)
-                consensus = sum(s * w / total for s, w in zip(scores, adjusted_weights, strict=False))
+                consensus = sum(
+                    s * w / total for s, w in zip(scores, adjusted_weights, strict=False)
+                )
             else:
                 consensus = statistics.mean(scores)
         else:
@@ -665,9 +670,7 @@ class LLMJudge:
                     )
                     latency = (datetime.now() - start_time).total_seconds() * 1000
 
-                    return self._parse_response(
-                        raw_response, dimension, model.name, latency
-                    )
+                    return self._parse_response(raw_response, dimension, model.name, latency)
                 except Exception as e:
                     return JudgeResult(
                         dimension=dimension,
@@ -691,23 +694,32 @@ class LLMJudge:
         if icc < self.config.min_icc:
             logger.warning(
                 "ICC(%.4f) 低于最低要求(%.2f)，尝试添加备用模型",
-                icc, self.config.min_icc,
+                icc,
+                self.config.min_icc,
             )
 
             expanded = await self._try_expand_judge(
-                task, response, dimension, reference,
-                system_prompt, user_prompt, results, semaphore,
+                task,
+                response,
+                dimension,
+                reference,
+                system_prompt,
+                user_prompt,
+                results,
+                semaphore,
             )
             if expanded is not None:
                 results, consensus, icc = expanded
                 logger.info(
                     "ICC 自动扩展成功，新 ICC=%.4f（%d 个模型）",
-                    icc, len(results),
+                    icc,
+                    len(results),
                 )
             else:
                 logger.warning(
                     "ICC 自动扩展失败，使用当前 %d 个模型的结果（ICC=%.4f）",
-                    len(results), icc,
+                    len(results),
+                    icc,
                 )
 
         return MultiJudgeResult(
@@ -835,7 +847,7 @@ class LLMJudge:
         import re
 
         # 尝试提取JSON
-        json_match = re.search(r'\{[^{}]*\}', raw_response, re.DOTALL)
+        json_match = re.search(r"\{[^{}]*\}", raw_response, re.DOTALL)
 
         if json_match:
             try:
@@ -854,8 +866,8 @@ class LLMJudge:
                 pass
 
         # 尝试提取分数
-        score_match = re.search(r'分数[：:]\s*(\d+)', raw_response)
-        confidence_match = re.search(r'置信度[：:]\s*([\d.]+)', raw_response)
+        score_match = re.search(r"分数[：:]\s*(\d+)", raw_response)
+        confidence_match = re.search(r"置信度[：:]\s*([\d.]+)", raw_response)
 
         score = float(score_match.group(1)) if score_match else 50.0
         confidence = float(confidence_match.group(1)) if confidence_match else 0.5

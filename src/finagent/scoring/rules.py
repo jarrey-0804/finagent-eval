@@ -13,6 +13,7 @@ from ..interface.models import EvalDimension, EvalResponse, EvalTask
 @dataclass
 class RuleScore:
     """规则评分结果"""
+
     rule_name: str
     score: float  # 0-100
     passed: bool
@@ -90,8 +91,9 @@ class KnowledgeAccuracyRule(BaseRule):
 
         # 规则2: 数值一致性
         import re
-        ref_numbers = re.findall(r'[\d,]+\.?\d*%?', reference or "")
-        out_numbers = re.findall(r'[\d,]+\.?\d*%?', output)
+
+        ref_numbers = re.findall(r"[\d,]+\.?\d*%?", reference or "")
+        out_numbers = re.findall(r"[\d,]+\.?\d*%?", output)
 
         if ref_numbers and out_numbers:
             matches = sum(1 for n in ref_numbers if n in out_numbers)
@@ -119,7 +121,8 @@ class KnowledgeAccuracyRule(BaseRule):
 
     def _extract_keywords(self, text: str) -> set[str]:
         import re
-        words = re.findall(r'[\u4e00-\u9fa5]{2,}|\b[a-zA-Z]{3,}\b', text.lower())
+
+        words = re.findall(r"[\u4e00-\u9fa5]{2,}|\b[a-zA-Z]{3,}\b", text.lower())
         stopwords = {"的", "是", "在", "有", "和", "了", "对", "为", "与", "到", "等"}
         return {w for w in words if w not in stopwords}
 
@@ -144,7 +147,7 @@ class ToolCallRule(BaseRule):
         """评估工具调用的正确性"""
         evidence = []
 
-        tool_calls = getattr(response, 'tool_calls', None) or []
+        tool_calls = getattr(response, "tool_calls", None) or []
 
         # 规则1: 必须调用工具
         if not tool_calls:
@@ -233,7 +236,8 @@ class PerformanceRule(BaseRule):
 
         # 规则3: 数据支撑
         import re
-        data_refs = re.findall(r'\d+\.?\d*%?|\d{4}年', output)
+
+        data_refs = re.findall(r"\d+\.?\d*%?|\d{4}年", output)
         if data_refs:
             score += min(len(data_refs) * 3, 20)
             evidence.append(f"数据支撑: {len(data_refs)}处")

@@ -44,6 +44,7 @@ except ImportError:
 # TraceContext - 追踪上下文数据类
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TraceContext:
     """当前追踪状态，保存 run 层级关系。"""
@@ -57,6 +58,7 @@ class TraceContext:
 # ---------------------------------------------------------------------------
 # LangSmithTracer - LangSmith 追踪封装
 # ---------------------------------------------------------------------------
+
 
 class LangSmithTracer:
     """
@@ -109,8 +111,7 @@ class LangSmithTracer:
         """
         if not _LANGSMITH_AVAILABLE:
             logger.warning(
-                "langsmith 包未安装，追踪功能已禁用。"
-                "可通过 'pip install langsmith' 安装。"
+                "langsmith 包未安装，追踪功能已禁用。可通过 'pip install langsmith' 安装。"
             )
             self._enabled = False
             return
@@ -324,6 +325,7 @@ class LangSmithTracer:
 # ---------------------------------------------------------------------------
 # trace_evaluation - 装饰器 / 上下文管理器
 # ---------------------------------------------------------------------------
+
 
 class trace_evaluation:
     """

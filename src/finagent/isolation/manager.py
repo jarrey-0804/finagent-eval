@@ -13,6 +13,7 @@ from datetime import datetime
 @dataclass
 class IsolationConfig:
     """隔离配置"""
+
     # 隔离级别
     isolation_level: str = "task"  # task | session | evaluation
 
@@ -32,6 +33,7 @@ class IsolationConfig:
 @dataclass
 class IsolatedState:
     """隔离状态"""
+
     isolation_id: str
     evaluation_id: str
     task_id: str | None
@@ -72,13 +74,10 @@ class StateIsolationManager:
         async with self._lock:
             # 检查并发限制
             active_count = sum(
-                1 for s in self._isolations.values()
-                if s.evaluation_id != evaluation_id
+                1 for s in self._isolations.values() if s.evaluation_id != evaluation_id
             )
             if active_count >= self.config.max_concurrent_isolations:
-                raise RuntimeError(
-                    f"并发隔离数已达上限 ({self.config.max_concurrent_isolations})"
-                )
+                raise RuntimeError(f"并发隔离数已达上限 ({self.config.max_concurrent_isolations})")
 
             isolation_id = str(uuid.uuid4())
 
@@ -162,7 +161,8 @@ class StateIsolationManager:
         async with self._lock:
             now = datetime.now()
             expired = [
-                iso_id for iso_id, state in self._isolations.items()
+                iso_id
+                for iso_id, state in self._isolations.items()
                 if (now - state.updated_at).total_seconds() > self.config.state_ttl_seconds
             ]
             for iso_id in expired:

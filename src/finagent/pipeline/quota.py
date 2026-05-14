@@ -12,6 +12,7 @@ from datetime import datetime
 @dataclass
 class ResourceUsage:
     """资源使用情况"""
+
     cpu_percent: float = 0.0
     memory_mb: float = 0.0
     network_mbps: float = 0.0
@@ -31,6 +32,7 @@ class ResourceUsage:
 @dataclass
 class QuotaConfig:
     """配额配置"""
+
     max_cpu_percent: float = 80.0
     max_memory_mb: float = 4096.0
     max_network_mbps: float = 100.0
@@ -41,6 +43,7 @@ class QuotaConfig:
 @dataclass
 class Allocation:
     """资源分配记录"""
+
     evaluation_id: str
     allocated_at: float = field(default_factory=time.time)
     cpu_reserved: float = 25.0

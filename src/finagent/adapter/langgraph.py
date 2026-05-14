@@ -99,7 +99,7 @@ class LangGraphAdapter(FinancialAgentInterface):
             framework="langgraph",
             llm_backend=self._model_name,
             description=self._description,
-            supported_tools=[t.name if hasattr(t, 'name') else str(t) for t in self._tools],
+            supported_tools=[t.name if hasattr(t, "name") else str(t) for t in self._tools],
         )
 
     async def ainvoke(self, task: EvalTask) -> EvalResponse:
@@ -231,12 +231,14 @@ class LangGraphAdapter(FinancialAgentInterface):
     def serialize_state(self, state: AgentState) -> bytes:
         """序列化状态。"""
         import json
-        return json.dumps(state.model_dump()).encode('utf-8')
+
+        return json.dumps(state.model_dump()).encode("utf-8")
 
     def deserialize_state(self, data: bytes) -> AgentState:
         """反序列化状态。"""
         import json
-        return AgentState(**json.loads(data.decode('utf-8')))
+
+        return AgentState(**json.loads(data.decode("utf-8")))
 
     def get_trace(self, task_id: str) -> dict | None:
         """获取指定任务的执行追踪。"""
@@ -270,9 +272,11 @@ class LangGraphAdapter(FinancialAgentInterface):
             for msg in result["messages"]:
                 if hasattr(msg, "tool_calls") and msg.tool_calls:
                     for tc in msg.tool_calls:
-                        tool_calls.append({
-                            "name": tc.get("name", "unknown"),
-                            "args": tc.get("args", {}),
-                            "id": tc.get("id", ""),
-                        })
+                        tool_calls.append(
+                            {
+                                "name": tc.get("name", "unknown"),
+                                "args": tc.get("args", {}),
+                                "id": tc.get("id", ""),
+                            }
+                        )
         return tool_calls

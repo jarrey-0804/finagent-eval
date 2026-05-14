@@ -4,8 +4,8 @@
 提供 Prometheus 格式的指标采集和数据质量监控。
 """
 
+from .data_quality import DataQualityMetrics, DataQualityMonitor, DataQualityReport
 from .metrics import MetricsCollector, MetricsConfig
-from .data_quality import DataQualityMonitor, DataQualityReport, DataQualityMetrics
 from .quality_metrics import DataQualityMetricsExporter
 
 __all__ = [

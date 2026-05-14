@@ -28,6 +28,7 @@ from ..interface.models import (
 
 class DataSource(StrEnum):
     """数据源类型"""
+
     BIZFINBENCH = "bizfinbench"
     FINMCP_BENCH = "finmcp_bench"
     STOCKBENCH = "stockbench"
@@ -38,12 +39,13 @@ class DataSource(StrEnum):
 
 class TaskCategory(StrEnum):
     """任务类别"""
-    INFORMATION_QUERY = "information_query"       # 信息查询类
-    ANALYSIS_REASONING = "analysis_reasoning"     # 分析推理类
-    DECISION_SUPPORT = "decision_support"         # 决策支持类
-    TOOL_OPERATION = "tool_operation"             # 工具操作类
-    RISK_ASSESSMENT = "risk_assessment"           # 风险评估类
-    COMPLIANCE_CHECK = "compliance_check"         # 合规检查类
+
+    INFORMATION_QUERY = "information_query"  # 信息查询类
+    ANALYSIS_REASONING = "analysis_reasoning"  # 分析推理类
+    DECISION_SUPPORT = "decision_support"  # 决策支持类
+    TOOL_OPERATION = "tool_operation"  # 工具操作类
+    RISK_ASSESSMENT = "risk_assessment"  # 风险评估类
+    COMPLIANCE_CHECK = "compliance_check"  # 合规检查类
 
 
 @dataclass
@@ -51,13 +53,15 @@ class TaskGeneratorConfig:
     """任务生成器配置"""
 
     # 数据源配置
-    data_sources: list[DataSource] = field(default_factory=lambda: [
-        DataSource.BIZFINBENCH,
-        DataSource.FINMCP_BENCH,
-        DataSource.STOCKBENCH,
-        DataSource.TRADERBENCH,
-        DataSource.FINTRUST,
-    ])
+    data_sources: list[DataSource] = field(
+        default_factory=lambda: [
+            DataSource.BIZFINBENCH,
+            DataSource.FINMCP_BENCH,
+            DataSource.STOCKBENCH,
+            DataSource.TRADERBENCH,
+            DataSource.FINTRUST,
+        ]
+    )
 
     # 数据路径
     data_root: Path = field(default_factory=lambda: Path("./data"))
@@ -102,6 +106,7 @@ class TaskGeneratorConfig:
 
 class TaskMetadata(BaseModel):
     """任务元数据"""
+
     task_id: str = Field(..., description="任务唯一标识")
     source: DataSource = Field(..., description="数据来源")
     category: TaskCategory = Field(..., description="任务类别")
@@ -715,9 +720,10 @@ class FinTrustDataset(BaseDataset):
 
 class SamplingStrategy(StrEnum):
     """采样策略"""
-    RANDOM = "random"               # 随机采样
-    STRATIFIED = "stratified"       # 分层采样
-    BALANCED = "balanced"           # 均衡采样
+
+    RANDOM = "random"  # 随机采样
+    STRATIFIED = "stratified"  # 分层采样
+    BALANCED = "balanced"  # 均衡采样
     DIFFICULTY_WEIGHTED = "difficulty_weighted"  # 难度加权采样
 
 
@@ -974,10 +980,7 @@ class EvalTaskGenerator:
             items = fintrust.get_items()
 
             # 筛选对抗样本
-            adversarial_items = [
-                item for item in items
-                if item.get("is_adversarial", False)
-            ]
+            adversarial_items = [item for item in items if item.get("is_adversarial", False)]
 
             for item in adversarial_items:
                 task = self._create_eval_task(
@@ -1028,7 +1031,10 @@ class EvalTaskGenerator:
 
         all_items = self._collect_phase_data_items(sources)
         filtered_items = self._filter_items_by_phase(
-            all_items, phase, phase_task_types, phase_dimensions,
+            all_items,
+            phase,
+            phase_task_types,
+            phase_dimensions,
         )
 
         # 如果过滤后没有任务，回退到使用所有数据源的数据
@@ -1149,10 +1155,7 @@ class EvalTaskGenerator:
             item_dimensions = dataset.get_dimensions(item)
 
             # 检查任务类型是否匹配（宽松匹配：数据集的任务类型在阶段列表中）
-            type_match = any(
-                tt.value in [t.value for t in phase_task_types]
-                for tt in [task_type]
-            )
+            type_match = any(tt.value in [t.value for t in phase_task_types] for tt in [task_type])
 
             # 检查维度是否匹配（至少有一个维度在阶段维度中）
             dim_match = bool(set(item_dimensions) & set(phase_dimensions))
@@ -1268,19 +1271,19 @@ class EvalTaskGenerator:
         original_id = item.get("id", str(uuid.uuid4()))
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
-        # 使用哈希确保唯一性
+        # 使用哈希确保唯一性 (使用 SHA-256 替代 MD5)
         hash_input = f"{source.value}_{original_id}_{timestamp}"
-        hash_suffix = hashlib.md5(hash_input.encode()).hexdigest()[:8]
+        hash_suffix = hashlib.sha256(hash_input.encode()).hexdigest()[:8]
 
         return f"task_{source.value}_{hash_suffix}"
 
     def _get_timeout_for_difficulty(self, difficulty: DifficultyLevel) -> int:
         """根据难度获取超时时间"""
         timeout_map = {
-            DifficultyLevel.EASY: 60,      # 1分钟
-            DifficultyLevel.MEDIUM: 120,   # 2分钟
-            DifficultyLevel.HARD: 300,     # 5分钟
-            DifficultyLevel.EXPERT: 600,   # 10分钟
+            DifficultyLevel.EASY: 60,  # 1分钟
+            DifficultyLevel.MEDIUM: 120,  # 2分钟
+            DifficultyLevel.HARD: 300,  # 5分钟
+            DifficultyLevel.EXPERT: 600,  # 10分钟
         }
         return timeout_map.get(difficulty, 120)
 

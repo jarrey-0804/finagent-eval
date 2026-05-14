@@ -72,7 +72,9 @@ class TradingPerformanceMetric(BaseMetric):
             score = self._aggregate_score(cr, sr, mdd, win_rate)
             confidence = self._calc_confidence(trading_data)
 
-            reasoning_parts.append(f"CR={cr:.2f}%, SR={sr:.4f}, MDD={mdd:.2f}%, WinRate={win_rate:.2f}%")
+            reasoning_parts.append(
+                f"CR={cr:.2f}%, SR={sr:.4f}, MDD={mdd:.2f}%, WinRate={win_rate:.2f}%"
+            )
             reasoning_parts.append(f"综合评分={score:.1f}")
 
         except Exception as e:
@@ -87,9 +89,7 @@ class TradingPerformanceMetric(BaseMetric):
     # 数据提取
     # ------------------------------------------------------------------
 
-    def _extract_trading_data(
-        self, task: EvalTask, response: EvalResponse
-    ) -> dict | None:
+    def _extract_trading_data(self, task: EvalTask, response: EvalResponse) -> dict | None:
         """
         从 response.tool_calls 或 response.output 中提取交易数据。
 
@@ -113,7 +113,9 @@ class TradingPerformanceMetric(BaseMetric):
         if response.tool_calls:
             for tc in response.tool_calls:
                 result = tc.get("output") or tc.get("result") or {}
-                if isinstance(result, dict) and (result.get("trades") or result.get("portfolio_values")):
+                if isinstance(result, dict) and (
+                    result.get("trades") or result.get("portfolio_values")
+                ):
                     return result
 
         # 其次从 output 中尝试解析 JSON
@@ -123,11 +125,13 @@ class TradingPerformanceMetric(BaseMetric):
             import re
 
             # 尝试在输出中找到 JSON 块
-            json_blocks = re.findall(r'\{[^{}]*\}', output)
+            json_blocks = re.findall(r"\{[^{}]*\}", output)
             for block in json_blocks:
                 try:
                     data = json.loads(block)
-                    if isinstance(data, dict) and (data.get("trades") or data.get("portfolio_values")):
+                    if isinstance(data, dict) and (
+                        data.get("trades") or data.get("portfolio_values")
+                    ):
                         return data
                 except (json.JSONDecodeError, ValueError):
                     continue
@@ -164,7 +168,7 @@ class TradingPerformanceMetric(BaseMetric):
             total_return = 1.0
             for t in trades:
                 rr = t.get("return_rate", 0)
-                total_return *= (1 + rr)
+                total_return *= 1 + rr
             return (total_return - 1) * 100
 
         return 0.0

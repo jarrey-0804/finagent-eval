@@ -206,6 +206,7 @@ class FinancialAgentInterface(ABC):
             EvalResponse: 评测响应。
         """
         import asyncio
+
         return asyncio.run(self.ainvoke(task))
 
     def batch(self, tasks: list[EvalTask]) -> list[EvalResponse]:
@@ -222,6 +223,7 @@ class FinancialAgentInterface(ABC):
             list[EvalResponse]: 评测响应列表。
         """
         import asyncio
+
         return asyncio.run(self.abatch(tasks))
 
     async def health_check(self) -> dict:

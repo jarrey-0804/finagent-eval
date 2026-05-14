@@ -61,7 +61,11 @@ class AutoGenAdapter(FinancialAgentInterface):
 
             # 提取最后的回复
             if isinstance(result, dict):
-                output = result.get("chat_history", "")[-1].get("content", "") if result.get("chat_history") else str(result)
+                output = (
+                    result.get("chat_history", "")[-1].get("content", "")
+                    if result.get("chat_history")
+                    else str(result)
+                )
             elif isinstance(result, str):
                 output = result
             else:
@@ -111,12 +115,14 @@ class AutoGenAdapter(FinancialAgentInterface):
     def serialize_state(self, state: AgentState) -> bytes:
         """序列化状态"""
         import json
-        return json.dumps(state.model_dump()).encode('utf-8')
+
+        return json.dumps(state.model_dump()).encode("utf-8")
 
     def deserialize_state(self, data: bytes) -> AgentState:
         """反序列化状态"""
         import json
-        return AgentState(**json.loads(data.decode('utf-8')))
+
+        return AgentState(**json.loads(data.decode("utf-8")))
 
     def get_trace(self, task_id: str) -> dict | None:
         """获取指定任务的执行追踪"""
@@ -138,9 +144,11 @@ class AutoGenAdapter(FinancialAgentInterface):
             for msg in result.get("chat_history", []):
                 if msg.get("tool_calls"):
                     for tc in msg["tool_calls"]:
-                        tool_calls.append({
-                            "name": tc.get("function", {}).get("name", ""),
-                            "args": tc.get("function", {}).get("arguments", {}),
-                            "success": True,
-                        })
+                        tool_calls.append(
+                            {
+                                "name": tc.get("function", {}).get("name", ""),
+                                "args": tc.get("function", {}).get("arguments", {}),
+                                "success": True,
+                            }
+                        )
         return tool_calls

@@ -16,6 +16,7 @@ from .._compat import StrEnum
 
 class MCPServerStatus(StrEnum):
     """MCP服务器状态"""
+
     STOPPED = "stopped"
     STARTING = "starting"
     RUNNING = "running"
@@ -26,6 +27,7 @@ class MCPServerStatus(StrEnum):
 
 class MCPServerConfig(BaseModel):
     """MCP服务器配置"""
+
     name: str = Field(..., description="服务器名称")
     command: str = Field(..., description="启动命令")
     args: list[str] = Field(default_factory=list, description="命令参数")
@@ -48,6 +50,7 @@ class MCPServerConfig(BaseModel):
 @dataclass
 class MCPServerInstance:
     """MCP服务器实例"""
+
     config: MCPServerConfig
     status: MCPServerStatus = MCPServerStatus.STOPPED
     process: subprocess.Popen | None = None
@@ -226,10 +229,7 @@ class MCPServerManager:
 
     def list_servers(self) -> list[dict]:
         """列出所有服务器"""
-        return [
-            self.get_server_status(name)
-            for name in self._servers
-        ]
+        return [self.get_server_status(name) for name in self._servers]
 
     def get_available_tools(self) -> dict[str, list[str]]:
         """获取所有可用工具"""

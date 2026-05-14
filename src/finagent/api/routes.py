@@ -17,8 +17,10 @@ from ..taskgen.generator import EvalTaskGenerator, TaskGeneratorConfig
 
 # ============ 请求/响应模型 ============
 
+
 class EvaluationRequest(BaseModel):
     """评测请求"""
+
     agent_id: str = Field(..., description="Agent ID")
     agent_type: str = Field(default="langgraph", description="Agent类型")
     agent_config: dict = Field(default_factory=dict, description="Agent配置")
@@ -33,6 +35,7 @@ class EvaluationRequest(BaseModel):
 
 class EvaluationResponse(BaseModel):
     """评测响应"""
+
     evaluation_id: str = Field(..., description="评测ID")
     status: str = Field(..., description="状态")
     message: str = Field(..., description="消息")
@@ -41,6 +44,7 @@ class EvaluationResponse(BaseModel):
 
 class EvaluationStatusResponse(BaseModel):
     """评测状态响应"""
+
     evaluation_id: str
     agent_id: str
     status: str
@@ -54,6 +58,7 @@ class EvaluationStatusResponse(BaseModel):
 
 class AgentRegistrationRequest(BaseModel):
     """Agent注册请求"""
+
     agent_id: str = Field(..., description="Agent ID")
     agent_name: str = Field(..., description="Agent名称")
     agent_type: str = Field(default="langgraph", description="Agent类型")
@@ -64,6 +69,7 @@ class AgentRegistrationRequest(BaseModel):
 
 class AgentInfo(BaseModel):
     """Agent信息"""
+
     agent_id: str
     agent_name: str
     agent_type: str
@@ -75,6 +81,7 @@ class AgentInfo(BaseModel):
 
 class TaskGenerationRequest(BaseModel):
     """任务生成请求"""
+
     sources: list[str] | None = Field(None, description="数据源列表")
     task_count: int = Field(default=20, description="任务数量")
     eval_mode: str = Field(default="full", description="评测模式")
@@ -83,6 +90,7 @@ class TaskGenerationRequest(BaseModel):
 
 class TaskInfo(BaseModel):
     """任务信息"""
+
     task_id: str
     task_type: str
     query: str
@@ -93,6 +101,7 @@ class TaskInfo(BaseModel):
 
 class ReportRequest(BaseModel):
     """报告请求"""
+
     evaluation_id: str = Field(..., description="评测ID")
     format: str = Field(default="json", description="报告格式: json/markdown/html")
     include_details: bool = Field(default=True, description="是否包含详细结果")
@@ -100,6 +109,7 @@ class ReportRequest(BaseModel):
 
 class ReportResponse(BaseModel):
     """报告响应"""
+
     evaluation_id: str
     generated_at: datetime
     format: str
@@ -111,12 +121,14 @@ class ReportResponse(BaseModel):
 
 class AgentComparisonRequest(BaseModel):
     """Agent对比请求"""
+
     agent_ids: list[str] = Field(..., description="要对比的Agent ID列表")
     eval_mode: str = Field(default="full", description="评测模式")
 
 
 class AgentComparisonResponse(BaseModel):
     """Agent对比响应"""
+
     comparison_id: str
     agents: list[dict]
     dimensions: list[str]
@@ -125,6 +137,7 @@ class AgentComparisonResponse(BaseModel):
 
 class BatchEvaluationRequest(BaseModel):
     """批量评测请求"""
+
     agent_ids: list[str] = Field(..., description="要评测的Agent ID列表")
     eval_mode: str = Field(default="full", description="评测模式")
     task_count: int | None = Field(None, description="每个Agent的任务数量")
@@ -132,14 +145,17 @@ class BatchEvaluationRequest(BaseModel):
 
 # ============ Phase 4 高级功能模型 ============
 
+
 class BenchmarkRequest(BaseModel):
     """行业基准对比请求"""
+
     agent_id: str = Field(..., description="Agent ID")
     agent_type: str = Field(default="investment_decision", description="Agent类型")
 
 
 class BenchmarkResponse(BaseModel):
     """行业基准对比响应"""
+
     agent_id: str
     agent_type: str
     agent_score: float
@@ -154,11 +170,13 @@ class BenchmarkResponse(BaseModel):
 
 class ComplianceReportRequest(BaseModel):
     """合规报告请求"""
+
     evaluation_id: str = Field(..., description="评测ID")
 
 
 class ComplianceReportResponse(BaseModel):
     """合规报告响应"""
+
     evaluation_id: str
     overall_compliance: str  # "pass" / "fail" / "conditional_pass"
     compliance_score: float
@@ -170,11 +188,13 @@ class ComplianceReportResponse(BaseModel):
 
 class ImprovementRequest(BaseModel):
     """改进建议请求"""
+
     evaluation_id: str = Field(..., description="评测ID")
 
 
 class ImprovementResponse(BaseModel):
     """改进建议响应"""
+
     evaluation_id: str
     overall_score: float
     rating: str
@@ -187,39 +207,79 @@ class ImprovementResponse(BaseModel):
 
 INDUSTRY_BENCHMARKS = {
     "investment_decision": {
-        "avg": 68.5, "p50": 70.2, "p75": 78.5, "p90": 85.0,
+        "avg": 68.5,
+        "p50": 70.2,
+        "p75": 78.5,
+        "p90": 85.0,
         "dimensions": {
-            "accuracy": 72.0, "completeness": 68.5, "reasoning": 65.0,
-            "professionalism": 70.0, "tool_usage": 62.0, "compliance": 75.0,
-            "security": 80.0, "risk_awareness": 70.0, "robustness": 60.0,
-            "transparency": 65.0, "consistency": 68.0,
+            "accuracy": 72.0,
+            "completeness": 68.5,
+            "reasoning": 65.0,
+            "professionalism": 70.0,
+            "tool_usage": 62.0,
+            "compliance": 75.0,
+            "security": 80.0,
+            "risk_awareness": 70.0,
+            "robustness": 60.0,
+            "transparency": 65.0,
+            "consistency": 68.0,
         },
     },
     "quant_research": {
-        "avg": 65.0, "p50": 67.0, "p75": 75.0, "p90": 82.0,
+        "avg": 65.0,
+        "p50": 67.0,
+        "p75": 75.0,
+        "p90": 82.0,
         "dimensions": {
-            "accuracy": 75.0, "completeness": 70.0, "reasoning": 72.0,
-            "professionalism": 68.0, "tool_usage": 70.0, "compliance": 72.0,
-            "security": 78.0, "risk_awareness": 65.0, "robustness": 58.0,
-            "transparency": 62.0, "consistency": 65.0,
+            "accuracy": 75.0,
+            "completeness": 70.0,
+            "reasoning": 72.0,
+            "professionalism": 68.0,
+            "tool_usage": 70.0,
+            "compliance": 72.0,
+            "security": 78.0,
+            "risk_awareness": 65.0,
+            "robustness": 58.0,
+            "transparency": 62.0,
+            "consistency": 65.0,
         },
     },
     "trade_execution": {
-        "avg": 62.0, "p50": 64.0, "p75": 72.0, "p90": 80.0,
+        "avg": 62.0,
+        "p50": 64.0,
+        "p75": 72.0,
+        "p90": 80.0,
         "dimensions": {
-            "accuracy": 70.0, "completeness": 65.0, "reasoning": 60.0,
-            "professionalism": 62.0, "tool_usage": 75.0, "compliance": 78.0,
-            "security": 82.0, "risk_awareness": 72.0, "robustness": 55.0,
-            "transparency": 60.0, "consistency": 62.0,
+            "accuracy": 70.0,
+            "completeness": 65.0,
+            "reasoning": 60.0,
+            "professionalism": 62.0,
+            "tool_usage": 75.0,
+            "compliance": 78.0,
+            "security": 82.0,
+            "risk_awareness": 72.0,
+            "robustness": 55.0,
+            "transparency": 60.0,
+            "consistency": 62.0,
         },
     },
     "financial_analysis": {
-        "avg": 66.0, "p50": 68.0, "p75": 76.0, "p90": 83.0,
+        "avg": 66.0,
+        "p50": 68.0,
+        "p75": 76.0,
+        "p90": 83.0,
         "dimensions": {
-            "accuracy": 73.0, "completeness": 72.0, "reasoning": 68.0,
-            "professionalism": 70.0, "tool_usage": 65.0, "compliance": 74.0,
-            "security": 79.0, "risk_awareness": 68.0, "robustness": 58.0,
-            "transparency": 64.0, "consistency": 66.0,
+            "accuracy": 73.0,
+            "completeness": 72.0,
+            "reasoning": 68.0,
+            "professionalism": 70.0,
+            "tool_usage": 65.0,
+            "compliance": 74.0,
+            "security": 79.0,
+            "risk_awareness": 68.0,
+            "robustness": 58.0,
+            "transparency": 64.0,
+            "consistency": 66.0,
         },
     },
 }
@@ -234,6 +294,7 @@ COMPLIANCE_CHECKS = [
 
 
 # ============ 路由器 ============
+
 
 class EvaluationRouter:
     """评测路由"""
@@ -316,10 +377,7 @@ class EvaluationRouter:
             evaluations = list(self._running_evaluations.values())
 
             if status:
-                evaluations = [
-                    e for e in evaluations
-                    if e["status"] == status
-                ]
+                evaluations = [e for e in evaluations if e["status"] == status]
 
             return {
                 "total": len(evaluations),
@@ -338,7 +396,8 @@ class EvaluationRouter:
             for agent_id in request.agent_ids:
                 # 查找该Agent最近的评测结果
                 agent_evals = [
-                    (eid, info) for eid, info in self._running_evaluations.items()
+                    (eid, info)
+                    for eid, info in self._running_evaluations.items()
                     if info.get("agent_id") == agent_id and info.get("status") == "completed"
                 ]
 
@@ -352,29 +411,42 @@ class EvaluationRouter:
                         "overall_rating": result.get("overall_rating", "N/A"),
                     }
                     scores.append(agent_scores)
-                    agents.append({
-                        "agent_id": agent_id,
-                        "evaluation_id": eval_info.get("evaluation_id", ""),
-                        "status": "completed",
-                    })
+                    agents.append(
+                        {
+                            "agent_id": agent_id,
+                            "evaluation_id": eval_info.get("evaluation_id", ""),
+                            "status": "completed",
+                        }
+                    )
                 else:
-                    scores.append({
-                        "agent_id": agent_id,
-                        "overall_score": 0,
-                        "overall_rating": "N/A",
-                    })
-                    agents.append({
-                        "agent_id": agent_id,
-                        "evaluation_id": "",
-                        "status": "not_found",
-                    })
+                    scores.append(
+                        {
+                            "agent_id": agent_id,
+                            "overall_score": 0,
+                            "overall_rating": "N/A",
+                        }
+                    )
+                    agents.append(
+                        {
+                            "agent_id": agent_id,
+                            "evaluation_id": "",
+                            "status": "not_found",
+                        }
+                    )
 
             # 默认维度列表
             dimensions = [
-                "accuracy", "completeness", "reasoning",
-                "tool_usage", "professionalism", "compliance",
-                "risk_awareness", "robustness", "security",
-                "transparency", "consistency",
+                "accuracy",
+                "completeness",
+                "reasoning",
+                "tool_usage",
+                "professionalism",
+                "compliance",
+                "risk_awareness",
+                "robustness",
+                "security",
+                "transparency",
+                "consistency",
             ]
 
             return AgentComparisonResponse(
@@ -422,11 +494,13 @@ class EvaluationRouter:
                     eval_request,
                 )
 
-                results.append({
-                    "evaluation_id": eval_id,
-                    "agent_id": agent_id,
-                    "status": "pending",
-                })
+                results.append(
+                    {
+                        "evaluation_id": eval_id,
+                        "agent_id": agent_id,
+                        "status": "pending",
+                    }
+                )
 
             return {
                 "batch_id": batch_id,
@@ -462,6 +536,7 @@ class EvaluationRouter:
             else:
                 # 模拟适配器（用于测试）
                 from ..adapter.langgraph import MockLangGraphAdapter
+
                 agent = MockLangGraphAdapter()
 
             # 创建评测流水线
@@ -554,10 +629,7 @@ class AgentRouter:
             agents = list(self._agents.values())
 
             if agent_type:
-                agents = [
-                    a for a in agents
-                    if a.agent_type == agent_type
-                ]
+                agents = [a for a in agents if a.agent_type == agent_type]
 
             return {
                 "total": len(agents),
@@ -711,12 +783,14 @@ class BenchmarkRouter:
             dim_comparison = []
             for dim, bench_score in benchmark["dimensions"].items():
                 agent_dim_score = agent_score + (hash(dim) % 20 - 10)  # Simulated
-                dim_comparison.append({
-                    "dimension": dim,
-                    "agent_score": round(max(0, min(100, agent_dim_score)), 1),
-                    "benchmark_avg": bench_score,
-                    "gap": round(max(0, min(100, agent_dim_score)) - bench_score, 1),
-                })
+                dim_comparison.append(
+                    {
+                        "dimension": dim,
+                        "agent_score": round(max(0, min(100, agent_dim_score)), 1),
+                        "benchmark_avg": bench_score,
+                        "gap": round(max(0, min(100, agent_dim_score)) - bench_score, 1),
+                    }
+                )
 
             # Generate recommendations
             recommendations = []
@@ -768,28 +842,30 @@ class ComplianceRouter:
                 passed = score >= 70
                 total_score += score * check["weight"] / 100
 
-                checks.append({
-                    "id": check["id"],
-                    "name": check["name"],
-                    "category": check["category"],
-                    "score": round(score, 1),
-                    "status": "pass" if passed else "fail",
-                    "weight": check["weight"],
-                })
+                checks.append(
+                    {
+                        "id": check["id"],
+                        "name": check["name"],
+                        "category": check["category"],
+                        "score": round(score, 1),
+                        "status": "pass" if passed else "fail",
+                        "weight": check["weight"],
+                    }
+                )
 
                 if not passed:
-                    risk_items.append({
-                        "check_id": check["id"],
-                        "check_name": check["name"],
-                        "severity": "high" if score < 50 else "medium",
-                        "description": f"{check['name']}检查未通过，得分{score:.1f}，低于70分阈值",
-                        "suggestion": f"建议加强{check['name']}相关能力",
-                    })
+                    risk_items.append(
+                        {
+                            "check_id": check["id"],
+                            "check_name": check["name"],
+                            "severity": "high" if score < 50 else "medium",
+                            "description": f"{check['name']}检查未通过，得分{score:.1f}，低于70分阈值",
+                            "suggestion": f"建议加强{check['name']}相关能力",
+                        }
+                    )
 
             overall = (
-                "pass"
-                if total_score >= 80
-                else "conditional_pass" if total_score >= 60 else "fail"
+                "pass" if total_score >= 80 else "conditional_pass" if total_score >= 60 else "fail"
             )
 
             return ComplianceReportResponse(
@@ -799,7 +875,7 @@ class ComplianceRouter:
                 checks=checks,
                 risk_items=risk_items,
                 summary=f"合规评分 {total_score:.1f}/100，"
-                        f"{'整体合规' if overall == 'pass' else '存在合规风险' if overall == 'conditional_pass' else '合规不通过'}",
+                f"{'整体合规' if overall == 'pass' else '存在合规风险' if overall == 'conditional_pass' else '合规不通过'}",
                 generated_at=datetime.now().isoformat(),
             )
 
@@ -898,8 +974,10 @@ class ImprovementRouter:
                         "dimension": s["dimension"],
                         "score": s["current_score"],
                         "status": (
-                            "weak" if s["current_score"] < 65
-                            else "normal" if s["current_score"] < 80
+                            "weak"
+                            if s["current_score"] < 65
+                            else "normal"
+                            if s["current_score"] < 80
                             else "strong"
                         ),
                     }

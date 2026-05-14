@@ -13,6 +13,7 @@ from .._compat import StrEnum
 
 class AuditLevel(StrEnum):
     """审计级别"""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -21,6 +22,7 @@ class AuditLevel(StrEnum):
 
 class ToolCallStatus(StrEnum):
     """工具调用状态"""
+
     SUCCESS = "success"
     FAILURE = "failure"
     TIMEOUT = "timeout"
@@ -31,6 +33,7 @@ class ToolCallStatus(StrEnum):
 @dataclass
 class ToolCallRecord:
     """工具调用记录"""
+
     record_id: str
     evaluation_id: str
     task_id: str
@@ -78,6 +81,7 @@ class ToolCallRecord:
 @dataclass
 class AuditReport:
     """审计报告"""
+
     evaluation_id: str
     agent_id: str
     total_calls: int
@@ -109,8 +113,13 @@ class AuditConfig:
         self.enable_persistence = enable_persistence
         self.audit_sensitive_args = audit_sensitive_args
         self.sensitive_fields = sensitive_fields or [
-            "api_key", "password", "token", "secret",
-            "api_key", "access_key", "private_key",
+            "api_key",
+            "password",
+            "token",
+            "secret",
+            "api_key",
+            "access_key",
+            "private_key",
         ]
 
 
@@ -170,7 +179,7 @@ class UniversalToolAuditor:
 
         # 限制记录数
         if len(self._records) > self.config.max_records:
-            self._records = self._records[-self.config.max_records:]
+            self._records = self._records[-self.config.max_records :]
 
         return record
 
@@ -311,9 +320,7 @@ class UniversalToolAuditor:
 
         for stats in tool_stats.values():
             if stats["call_count"] > 0:
-                stats["avg_duration_ms"] = (
-                    stats["total_duration_ms"] / stats["call_count"]
-                )
+                stats["avg_duration_ms"] = stats["total_duration_ms"] / stats["call_count"]
 
         return tool_stats
 
@@ -334,21 +341,20 @@ class UniversalToolAuditor:
         issues = []
         for r in records:
             if r.audit_level in (AuditLevel.WARNING, AuditLevel.ERROR, AuditLevel.CRITICAL):
-                issues.append({
-                    "record_id": r.record_id,
-                    "tool_name": r.tool_name,
-                    "level": r.audit_level.value,
-                    "notes": r.audit_notes,
-                })
+                issues.append(
+                    {
+                        "record_id": r.record_id,
+                        "tool_name": r.tool_name,
+                        "level": r.audit_level.value,
+                        "notes": r.audit_notes,
+                    }
+                )
         return issues
 
     def clear_records(self, evaluation_id: str | None = None):
         """清除审计记录"""
         if evaluation_id:
-            self._records = [
-                r for r in self._records
-                if r.evaluation_id != evaluation_id
-            ]
+            self._records = [r for r in self._records if r.evaluation_id != evaluation_id]
         else:
             self._records.clear()
 

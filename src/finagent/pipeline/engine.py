@@ -18,6 +18,7 @@ from ..taskgen.generator import EvalTaskGenerator, TaskGeneratorConfig
 @dataclass
 class EngineConfig:
     """引擎配置"""
+
     eval_mode: EvalMode = EvalMode.FULL
     max_concurrent_tasks: int = 5
     task_timeout_seconds: int = 300
@@ -30,6 +31,7 @@ class EngineConfig:
 @dataclass
 class EngineResult:
     """引擎执行结果"""
+
     success: bool
     eval_mode: str
     total_tasks: int
@@ -129,10 +131,10 @@ class EvaluationEngine:
             for task, response in zip(tasks, responses, strict=False):
                 task_response_pairs.append((task, response, task.reference_answer))
 
-            agent_id = self.agent.get_config().agent_id if hasattr(self.agent, 'get_config') else "unknown"
-            eval_score = self.scoring_engine.score_evaluation(
-                task_response_pairs, agent_id
+            agent_id = (
+                self.agent.get_config().agent_id if hasattr(self.agent, "get_config") else "unknown"
             )
+            eval_score = self.scoring_engine.score_evaluation(task_response_pairs, agent_id)
 
             # 阶段3: 否决检查
             for ts in eval_score.task_scores:
@@ -147,8 +149,7 @@ class EvaluationEngine:
             result.overall_score = eval_score.overall_score
             result.overall_rating = eval_score.overall_rating.value
             result.dimension_scores = {
-                dim.value: score
-                for dim, score in eval_score.dimension_averages.items()
+                dim.value: score for dim, score in eval_score.dimension_averages.items()
             }
             result.success = True
 
@@ -203,11 +204,13 @@ class EvaluationEngine:
         final = []
         for i, resp in enumerate(responses):
             if isinstance(resp, Exception):
-                final.append(EvalResponse(
-                    task_id=tasks[i].task_id,
-                    output="",
-                    error=str(resp),
-                ))
+                final.append(
+                    EvalResponse(
+                        task_id=tasks[i].task_id,
+                        output="",
+                        error=str(resp),
+                    )
+                )
             else:
                 final.append(resp)
 

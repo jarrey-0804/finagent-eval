@@ -6,30 +6,34 @@
 """
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Callable, Any
+from typing import Any
 
 
 class CircuitState(Enum):
     """熔断器状态"""
-    CLOSED = "closed"       # 正常，请求通过
-    OPEN = "open"           # 熔断，请求拒绝
-    HALF_OPEN = "half_open" # 半开，试探性请求
+
+    CLOSED = "closed"  # 正常，请求通过
+    OPEN = "open"  # 熔断，请求拒绝
+    HALF_OPEN = "half_open"  # 半开，试探性请求
 
 
 @dataclass
 class CircuitBreakerConfig:
     """熔断器配置"""
-    failure_threshold: int = 5          # 触发熔断的失败次数阈值
-    success_threshold: int = 3          # 半开状态下恢复所需的连续成功次数
-    timeout: float = 60.0               # 熔断持续时间（秒）
-    half_open_max_calls: int = 3        # 半开状态下最大试探请求数
+
+    failure_threshold: int = 5  # 触发熔断的失败次数阈值
+    success_threshold: int = 3  # 半开状态下恢复所需的连续成功次数
+    timeout: float = 60.0  # 熔断持续时间（秒）
+    half_open_max_calls: int = 3  # 半开状态下最大试探请求数
 
 
 @dataclass
 class CircuitBreakerStats:
     """熔断器统计"""
+
     state: CircuitState = CircuitState.CLOSED
     failure_count: int = 0
     success_count: int = 0

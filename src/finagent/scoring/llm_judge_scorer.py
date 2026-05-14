@@ -91,9 +91,7 @@ class LLMJudgeScorer(BaseMetric):
             )
         except RuntimeError:
             # 如果没有正在运行的事件循环，创建一个新的
-            result = asyncio.run(
-                self._judge.judge(task, response, self.dimension, reference)
-            )
+            result = asyncio.run(self._judge.judge(task, response, self.dimension, reference))
         except Exception as e:
             logger.error(
                 "LLMJudgeScorer 评分失败: dimension=%s, error=%s",
@@ -119,9 +117,7 @@ class LLMJudgeScorer(BaseMetric):
             if individual.evidence:
                 evidence.extend(individual.evidence)
             if individual.reasoning:
-                reasoning_parts.append(
-                    f"[{individual.model_name}] {individual.reasoning}"
-                )
+                reasoning_parts.append(f"[{individual.model_name}] {individual.reasoning}")
 
         # 添加共识信息
         evidence.append(

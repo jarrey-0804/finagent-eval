@@ -19,6 +19,7 @@ from datetime import datetime
 @dataclass
 class FinancialAttackResult:
     """金融对抗攻击结果"""
+
     level: str
     attack_type: str
     original_prices: list[float]
@@ -61,8 +62,9 @@ class GaussianNoiseInjector:
 
         return noisy_prices
 
-    def inject_volume(self, volumes: list[float], noise_level: float = 0.05,
-                      spike_probability: float = 0.1) -> list[float]:
+    def inject_volume(
+        self, volumes: list[float], noise_level: float = 0.05, spike_probability: float = 0.1
+    ) -> list[float]:
         """
         向成交量序列注入噪声和随机尖峰。
 
@@ -144,8 +146,9 @@ class TrendReversalGenerator:
 
         return result
 
-    def generate_false_breakout(self, prices: list[float],
-                                breakout_direction: str = "up") -> list[float]:
+    def generate_false_breakout(
+        self, prices: list[float], breakout_direction: str = "up"
+    ) -> list[float]:
         """
         生成虚假突破信号。
 
@@ -169,13 +172,21 @@ class TrendReversalGenerator:
             # 制造向上突破：在近期高点之上再创新高
             recent_high = max(result[breakout_start:])
             for i in range(breakout_start, n):
-                fake_boost = recent_high * random.uniform(0.02, 0.05) * ((i - breakout_start + 1) / (n - breakout_start))
+                fake_boost = (
+                    recent_high
+                    * random.uniform(0.02, 0.05)
+                    * ((i - breakout_start + 1) / (n - breakout_start))
+                )
                 result[i] = round(result[i] + fake_boost, 6)
         else:
             # 制造向下突破：在近期低点之下再创新低
             recent_low = min(result[breakout_start:])
             for i in range(breakout_start, n):
-                fake_drop = recent_low * random.uniform(0.02, 0.05) * ((i - breakout_start + 1) / (n - breakout_start))
+                fake_drop = (
+                    recent_low
+                    * random.uniform(0.02, 0.05)
+                    * ((i - breakout_start + 1) / (n - breakout_start))
+                )
                 result[i] = round(result[i] - fake_drop, 6)
 
         return result
@@ -198,13 +209,13 @@ class TechnicalIndicatorAttacker:
             return []
         mas = []
         for i in range(window - 1, len(prices)):
-            ma = sum(prices[i - window + 1:i + 1]) / window
+            ma = sum(prices[i - window + 1 : i + 1]) / window
             mas.append(ma)
         return mas
 
-    def inject_ma_crossover(self, prices: list[float],
-                            window_short: int = 5,
-                            window_long: int = 20) -> list[float]:
+    def inject_ma_crossover(
+        self, prices: list[float], window_short: int = 5, window_long: int = 20
+    ) -> list[float]:
         """
         注入虚假MA交叉信号。
 
@@ -232,7 +243,7 @@ class TechnicalIndicatorAttacker:
 
         # 对齐均线（长期均线从 window_long-1 开始）
         offset = window_long - window_short
-        aligned_short = ma_short[offset:] if offset > 0 else ma_short[:len(ma_long)]
+        aligned_short = ma_short[offset:] if offset > 0 else ma_short[: len(ma_long)]
 
         if not aligned_short or len(aligned_short) < 2:
             return result
@@ -330,7 +341,9 @@ class TechnicalIndicatorAttacker:
                 idx = len(result) - n_modify + i
                 # 逐步减小涨幅，使RSI动能减弱
                 dampening = 1.0 - (i + 1) / n_modify * 0.5
-                result[idx] = round(result[idx] * dampening + result[idx] * (1 - dampening) * 0.998, 6)
+                result[idx] = round(
+                    result[idx] * dampening + result[idx] * (1 - dampening) * 0.998, 6
+                )
         # 制造底背离：价格创新低但RSI不创新低
         elif price_trend < 0 and rsi_trend < 0:
             # 价格继续跌，但让RSI上升
@@ -339,7 +352,9 @@ class TechnicalIndicatorAttacker:
                 idx = len(result) - n_modify + i
                 # 逐步减小跌幅
                 dampening = 1.0 - (i + 1) / n_modify * 0.5
-                result[idx] = round(result[idx] * dampening + result[idx] * (1 - dampening) * 1.002, 6)
+                result[idx] = round(
+                    result[idx] * dampening + result[idx] * (1 - dampening) * 1.002, 6
+                )
 
         return result
 
@@ -441,14 +456,13 @@ class FinancialAdversarialTester:
         """Level 1: 基线测试，返回原始数据"""
         return list(prices)
 
-    def test_level_2_noisy(self, prices: list[float],
-                           noise_level: float = 0.01) -> list[float]:
+    def test_level_2_noisy(self, prices: list[float], noise_level: float = 0.01) -> list[float]:
         """Level 2: 噪声注入测试"""
         return self.noise_injector.inject(prices, noise_level=noise_level)
 
-    def test_level_3_meta(self, prices: list[float],
-                          noise_level: float = 0.01,
-                          reversal_point: float = 0.5) -> list[float]:
+    def test_level_3_meta(
+        self, prices: list[float], noise_level: float = 0.01, reversal_point: float = 0.5
+    ) -> list[float]:
         """Level 3: 元认知攻击 - 组合噪声 + 趋势反转 + 虚假突破"""
         # Step 1: 注入噪声
         result = self.noise_injector.inject(prices, noise_level=noise_level)
@@ -462,10 +476,13 @@ class FinancialAdversarialTester:
 
         return result
 
-    def test_level_4_adversarial(self, prices: list[float],
-                                 window_short: int = 5,
-                                 window_long: int = 20,
-                                 rsi_period: int = 14) -> list[float]:
+    def test_level_4_adversarial(
+        self,
+        prices: list[float],
+        window_short: int = 5,
+        window_long: int = 20,
+        rsi_period: int = 14,
+    ) -> list[float]:
         """Level 4: 对抗攻击 - MA交叉 + RSI背离 + MACD注入"""
         result = list(prices)
 
@@ -482,8 +499,7 @@ class FinancialAdversarialTester:
 
         return result
 
-    def run_all_levels(self, prices: list[float],
-                       score_fn=None) -> dict[str, dict]:
+    def run_all_levels(self, prices: list[float], score_fn=None) -> dict[str, dict]:
         """
         运行所有层级的对抗性测试。
 
@@ -535,8 +551,7 @@ class FinancialAdversarialTester:
         return results
 
     @staticmethod
-    def calculate_robustness_ratio(baseline_score: float,
-                                   adversarial_score: float) -> float:
+    def calculate_robustness_ratio(baseline_score: float, adversarial_score: float) -> float:
         """
         计算鲁棒性比率。
 

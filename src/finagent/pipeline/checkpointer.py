@@ -22,31 +22,24 @@ class CheckpointConfig(BaseModel):
 
     # 数据库配置
     database_url: str = Field(
-        default="postgresql://localhost/finagent_eval",
-        description="PostgreSQL数据库连接URL"
+        default="postgresql://localhost/finagent_eval", description="PostgreSQL数据库连接URL"
     )
 
     # 检查点表名
-    table_name: str = Field(
-        default="pipeline_checkpoints",
-        description="检查点表名"
-    )
+    table_name: str = Field(default="pipeline_checkpoints", description="检查点表名")
 
     # 保留策略
     max_checkpoints_per_pipeline: int = Field(
-        default=10,
-        description="每个流水线保留的最大检查点数"
+        default=10, description="每个流水线保留的最大检查点数"
     )
 
-    retention_days: int = Field(
-        default=30,
-        description="检查点保留天数"
-    )
+    retention_days: int = Field(default=30, description="检查点保留天数")
 
 
 @dataclass
 class Checkpoint:
     """检查点"""
+
     checkpoint_id: str
     pipeline_id: str
     state: PipelineState
@@ -77,6 +70,7 @@ class PostgresCheckpointer:
         if database_url:
             try:
                 import asyncpg
+
                 self._pool = await asyncpg.create_pool(
                     database_url,
                     min_size=2,
@@ -85,9 +79,7 @@ class PostgresCheckpointer:
                 logger.info("PostgresCheckpointer: PostgreSQL 连接池已初始化")
                 return
             except ImportError:
-                logger.warning(
-                    "PostgresCheckpointer: asyncpg 未安装，回退到内存存储"
-                )
+                logger.warning("PostgresCheckpointer: asyncpg 未安装，回退到内存存储")
             except Exception as exc:
                 logger.warning(
                     "PostgresCheckpointer: PostgreSQL 连接失败，回退到内存存储: %s",
@@ -170,7 +162,12 @@ class PostgresCheckpointer:
 
         try:
             # 读取迁移 SQL 文件
-            migration_path = Path(__file__).resolve().parents[3] / "config" / "migrations" / "001_init_schema.sql"
+            migration_path = (
+                Path(__file__).resolve().parents[3]
+                / "config"
+                / "migrations"
+                / "001_init_schema.sql"
+            )
             if migration_path.exists():
                 ddl_sql = migration_path.read_text(encoding="utf-8")
             else:
