@@ -7,9 +7,22 @@
 
 ---
 
-## [1.0.0] - 2025-05-09
+## [1.0.0] - 2026-05-14
 
 ### 新增
+
+#### 数据质量治理
+- 数据模型验证增强（EvalTask/EvalResponse/AgentConfig 15+ 验证规则）
+- API 输入验证增强（EvaluationRequest/AgentRegistrationRequest）
+- 数据质量监控模块（DataQualityMonitor）
+- Prometheus 数据质量指标导出（7 个指标）
+- Grafana 数据质量监控仪表盘
+- Prometheus 数据质量告警规则（8 条规则）
+
+#### 弹性机制
+- 熔断器模块（CircuitBreaker: CLOSED/OPEN/HALF_OPEN）
+- 重试机制模块（RetryHandler: 指数退避 + 抖动）
+- 外部数据缓存模块（DataCache/MCPDataCache）
 
 #### 核心功能
 - 三阶段评估流水线（STATIC → DYNAMIC → TRUST）
@@ -47,6 +60,12 @@
 
 ### 改进
 
+- 全面代码质量修复：ruff 0 errors, mypy 0 errors (77 source files)
+- 安全修复：MD5→SHA-256, 默认绑定 127.0.0.1
+- 异常体系重命名：EvaluationException→EvaluationError
+- 高复杂度函数重构：_extract_trading_data C18→C4, _aggregate_score C17→C3, _aggregate_phase_results C17→C3
+- 测试覆盖率提升：distributed_scheduler 30%→87%, llm_judge_scorer 30%→100%
+- pyproject.toml lint 配置迁移到 [tool.ruff.lint] 区块
 - 前端 API 集成与错误处理优化
 - 数据库连接池配置优化
 - 任务调度性能提升
@@ -57,6 +76,11 @@
 - JavaScript `eval` 保留字冲突问题
 - WebSocket 连接稳定性问题
 - 多项 UI/UX 问题修复
+- 2 个并发压力测试时序问题（软警告替代硬断言）
+- PipelineState 空安全问题（添加 state 属性方法）
+- EvalTask 属性名不匹配（query→input_data, dimensions→dimension）
+- astream 返回类型兼容性（基类签名同步）
+- adapter 层 agent_type str→AgentType 转换
 
 ---
 
