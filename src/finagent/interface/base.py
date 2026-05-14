@@ -66,8 +66,8 @@ class FinancialAgentInterface(ABC):
             EvalResponse: 评测响应，包含输出、工具调用记录、中间步骤等。
 
         Raises:
-            TaskTimeoutException: 任务执行超时。
-            AgentExecutionException: Agent 执行出错。
+            TaskTimeoutError: 任务执行超时。
+            AgentExecutionError: Agent 执行出错。
 
         对应需求: FR-001-03
         """
@@ -106,7 +106,8 @@ class FinancialAgentInterface(ABC):
 
         对应需求: FR-001-05
         """
-        ...
+        raise NotImplementedError
+        yield  # 使其成为 async generator，类型与子类一致
 
     @abstractmethod
     def get_state(self) -> AgentState:

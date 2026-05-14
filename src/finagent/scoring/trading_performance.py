@@ -151,18 +151,18 @@ class TradingPerformanceMetric(BaseMetric):
         """CR (Cumulative Return / 累计收益率): (final - initial) / initial * 100"""
         portfolio_values = data.get("portfolio_values")
         if portfolio_values and len(portfolio_values) >= 2:
-            initial = portfolio_values[0]
-            final = portfolio_values[-1]
+            initial = float(portfolio_values[0])
+            final = float(portfolio_values[-1])
             if initial != 0:
                 return (final - initial) / abs(initial) * 100
 
         # 从 trades 累加
         trades = data.get("trades", [])
         if trades:
-            initial = data.get("initial_value")
-            final = data.get("final_value")
-            if initial is not None and final is not None and initial != 0:
-                return (final - initial) / abs(initial) * 100
+            trade_initial: float | None = data.get("initial_value")
+            trade_final: float | None = data.get("final_value")
+            if trade_initial is not None and trade_final is not None and trade_initial != 0:
+                return (float(trade_final) - float(trade_initial)) / abs(float(trade_initial)) * 100
 
             # 从每笔交易的 return_rate 累乘
             total_return = 1.0

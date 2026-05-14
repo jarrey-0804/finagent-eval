@@ -5,7 +5,7 @@ Financial Agent Interface - 异常体系定义
 """
 
 
-class EvaluationException(Exception):
+class EvaluationError(Exception):
     """
     评测异常基类。
 
@@ -29,7 +29,7 @@ class EvaluationException(Exception):
         }
 
 
-class TaskTimeoutException(EvaluationException):
+class TaskTimeoutError(EvaluationError):
     """
     任务超时异常。
 
@@ -54,7 +54,7 @@ class TaskTimeoutException(EvaluationException):
         return result
 
 
-class AgentExecutionException(EvaluationException):
+class AgentExecutionError(EvaluationError):
     """
     Agent 执行异常。
 
@@ -83,7 +83,7 @@ class AgentExecutionException(EvaluationException):
         return result
 
 
-class ToolCallException(EvaluationException):
+class ToolCallError(EvaluationError):
     """
     工具调用异常。
 
@@ -115,7 +115,7 @@ class ToolCallException(EvaluationException):
         return result
 
 
-class EnvironmentException(EvaluationException):
+class EnvironmentError(EvaluationError):
     """
     评测环境异常。
 
@@ -140,7 +140,7 @@ class EnvironmentException(EvaluationException):
         return result
 
 
-class MCPConnectionException(EnvironmentException):
+class MCPConnectionError(EnvironmentError):
     """
     MCP 服务器连接异常。
     """
@@ -151,7 +151,7 @@ class MCPConnectionException(EnvironmentException):
         self.server_name = server_name
 
 
-class DatabaseException(EnvironmentException):
+class DatabaseError(EnvironmentError):
     """
     数据库异常。
     """
@@ -161,7 +161,7 @@ class DatabaseException(EnvironmentException):
         self.error_code = "DB_ERROR"
 
 
-class ValidationException(EvaluationException):
+class ValidationError(EvaluationError):
     """
     数据验证异常。
 
@@ -186,7 +186,7 @@ class ValidationException(EvaluationException):
         return result
 
 
-class ScoringException(EvaluationException):
+class ScoringError(EvaluationError):
     """
     评分异常。
 
@@ -212,7 +212,7 @@ class ScoringException(EvaluationException):
         return result
 
 
-class LLMJudgeException(ScoringException):
+class LLMJudgeError(ScoringError):
     """
     LLM Judge 评分异常。
     """

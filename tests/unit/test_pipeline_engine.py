@@ -52,13 +52,15 @@ def _make_agent():
 
 
 def _make_task(task_id="task-001", query="测试问题", dimension="accuracy"):
-    """创建 mock EvalTask，模拟 engine.py 使用的 task.query / task.reference_answer / task.timeout_seconds"""
+    """创建 mock EvalTask"""
     task = MagicMock()
     task.task_id = task_id
-    task.query = query
+    task.input_data = {"query": query, "reference_answer": "参考答案"}
     task.reference_answer = "参考答案"
     task.timeout_seconds = 300
+    task.time_limit_seconds = 300
     task.context = {}
+    task.dimension = dimension
     return task
 
 
@@ -337,7 +339,7 @@ class TestEvaluationEngine:
 
         original_ainvoke = agent.ainvoke
 
-        async def tracking_ainvoke(query, context):
+        async def tracking_ainvoke(task):
             nonlocal call_count, max_concurrent, current_concurrent
             call_count += 1
             current_concurrent += 1

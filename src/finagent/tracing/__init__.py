@@ -1,3 +1,3 @@
-from .langsmith import LangSmithTracer, TraceContext, trace_evaluation
+from .langsmith import LangSmithTracer, TraceContext, TraceEvaluation
 
-__all__ = ["LangSmithTracer", "TraceContext", "trace_evaluation"]
+__all__ = ["LangSmithTracer", "TraceContext", "TraceEvaluation"]

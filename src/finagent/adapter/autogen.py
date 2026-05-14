@@ -13,6 +13,7 @@ from ..interface.base import FinancialAgentInterface
 from ..interface.models import (
     AgentConfig,
     AgentState,
+    AgentType,
     EvalResponse,
     EvalTask,
 )
@@ -35,7 +36,7 @@ class AutoGenAdapter(FinancialAgentInterface):
         self._agent = agent
         self._config = config or AgentConfig(
             agent_name="autogen-agent",
-            agent_type="autogen",
+            agent_type=AgentType("autogen"),
             version="0.1.0",
             framework="autogen",
             llm_backend="unknown",
@@ -99,8 +100,7 @@ class AutoGenAdapter(FinancialAgentInterface):
     def get_state(self) -> AgentState:
         """获取Agent状态"""
         return AgentState(
-            status="idle",
-            metadata={"framework": "autogen"},
+            metadata={"framework": "autogen", "status": "idle"},
         )
 
     def reset(self, scope: str = "all") -> None:
@@ -131,9 +131,9 @@ class AutoGenAdapter(FinancialAgentInterface):
     def _build_input_content(self, task: EvalTask) -> str:
         """从 EvalTask 构建输入内容"""
         if "question" in task.input_data:
-            return task.input_data["question"]
+            return str(task.input_data["question"])
         elif "instruction" in task.input_data:
-            return task.input_data["instruction"]
+            return str(task.input_data["instruction"])
         else:
             return str(task.input_data)
 

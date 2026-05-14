@@ -7,6 +7,7 @@
 import asyncio
 import random
 import re
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -15,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from .._compat import StrEnum
 from ..interface.base import FinancialAgentInterface
+from ..interface.models import EvalTask, TaskType
 
 
 class AdversarialLevel(StrEnum):
@@ -651,8 +653,16 @@ class AdversarialTester:
 
         # 执行攻击
         try:
+            eval_task = EvalTask(
+                task_id=f"adv_{attack.attack_type.value}_{level.value}_{uuid.uuid4().hex[:8]}",
+                task_type=TaskType.ADVERSARIAL,
+                dimension="robustness",
+                input_data={"query": modified_query},
+                context={},
+                time_limit_seconds=self.config.timeout_seconds,
+            )
             response = await asyncio.wait_for(
-                self.agent.ainvoke(modified_query, {}),
+                self.agent.ainvoke(eval_task),
                 timeout=self.config.timeout_seconds,
             )
             actual_response = response.output or ""

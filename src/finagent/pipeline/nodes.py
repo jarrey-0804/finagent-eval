@@ -63,11 +63,11 @@ class TaskGeneratorNode(BaseNode):
             {
                 "task_id": t.task_id,
                 "task_type": t.task_type.value,
-                "query": t.query,
+                "query": t.input_data.get("query", ""),
                 "context": t.context,
-                "dimensions": [d.value for d in t.dimensions],
-                "timeout_seconds": t.timeout_seconds,
-                "reference_answer": t.reference_answer,
+                "dimensions": [t.dimension],
+                "timeout_seconds": t.time_limit_seconds,
+                "reference_answer": t.input_data.get("reference_answer", ""),
             }
             for t in tasks
         ]
@@ -106,11 +106,21 @@ class AgentExecutorNode(BaseNode):
             async with semaphore:
                 try:
                     timeout = task_data.get("timeout_seconds", self.timeout_seconds)
+                    # 构建 EvalTask 对象传给 ainvoke
+                    from ..interface.models import TaskType
+
+                    eval_task = EvalTask(
+                        task_id=task_data["task_id"],
+                        task_type=TaskType(task_data.get("task_type", "knowledge_qa")),
+                        dimension=task_data.get("dimensions", ["accuracy"])[0]
+                        if task_data.get("dimensions")
+                        else "accuracy",
+                        input_data={"query": task_data["query"]},
+                        context=task_data.get("context", {}),
+                        time_limit_seconds=timeout,
+                    )
                     response = await asyncio.wait_for(
-                        self.agent.ainvoke(
-                            task_data["query"],
-                            task_data.get("context", {}),
-                        ),
+                        self.agent.ainvoke(eval_task),
                         timeout=timeout,
                     )
                     return {
@@ -161,28 +171,33 @@ class ScorerNode(BaseNode):
 
         for task_data, response_data in zip(tasks_data, responses_data, strict=False):
             # 重建任务对象
-            from ..interface.models import EvalDimension, TaskType
+            from ..interface.models import TaskType
 
             task = EvalTask(
                 task_id=task_data["task_id"],
                 task_type=TaskType(task_data["task_type"]),
-                query=task_data["query"],
+                dimension=task_data.get("dimensions", ["accuracy"])[0]
+                if task_data.get("dimensions")
+                else "accuracy",
+                input_data={
+                    "query": task_data["query"],
+                    "reference_answer": task_data.get("reference_answer", ""),
+                },
                 context=task_data.get("context", {}),
-                dimensions=[EvalDimension(d) for d in task_data.get("dimensions", [])],
-                timeout_seconds=task_data.get("timeout_seconds", 120),
-                reference_answer=task_data.get("reference_answer", ""),
+                time_limit_seconds=task_data.get("timeout_seconds", 120),
             )
 
             # 重建响应对象
             response = EvalResponse(
                 task_id=response_data["task_id"],
                 output=response_data.get("output", ""),
-                tool_calls=response_data.get("tool_calls"),
+                tool_calls=response_data.get("tool_calls") or [],
                 error=response_data.get("error"),
             )
 
             # 评分
-            score = self.scoring_engine.score_task(task, response, task.reference_answer)
+            reference = task.input_data.get("reference_answer", "")
+            score = self.scoring_engine.score_task(task, response, reference)
 
             # 序列化评分
             task_scores.append(
@@ -295,20 +310,20 @@ class ReporterNode(BaseNode):
         """生成评测报告"""
         state = self.update_stage(state, PipelineStage.REPORTING)
 
-        evaluation_score = state.get("evaluation_score", {})
+        evaluation_score = state.get("evaluation_score") or {}
         task_scores = state.get("task_scores", [])
 
         # 生成建议
         recommendations = []
-        for dim, score in evaluation_score.get("dimension_averages", {}).items():
+        for dim, score in (evaluation_score or {}).get("dimension_averages", {}).items():
             if score < 60:
                 recommendations.append(f"{dim}维度得分较低（{score:.1f}），建议重点改进")
             elif score < 80:
                 recommendations.append(f"{dim}维度有提升空间（{score:.1f}）")
 
-        if evaluation_score.get("veto_count", 0) > 0:
+        if (evaluation_score or {}).get("veto_count", 0) > 0:
             recommendations.append(
-                f"存在{evaluation_score['veto_count']}次一票否决，需重点关注合规性和安全性"
+                f"存在{(evaluation_score or {})['veto_count']}次一票否决，需重点关注合规性和安全性"
             )
 
         if not recommendations:
@@ -321,17 +336,17 @@ class ReporterNode(BaseNode):
             "eval_mode": state["eval_mode"],
             "generated_at": state.get("completed_at"),
             "summary": {
-                "overall_score": evaluation_score.get("overall_score", 0),
-                "overall_rating": evaluation_score.get("overall_rating", "D"),
-                "total_tasks": evaluation_score.get("total_tasks", 0),
-                "passed_tasks": evaluation_score.get("passed_tasks", 0),
+                "overall_score": (evaluation_score or {}).get("overall_score", 0),
+                "overall_rating": (evaluation_score or {}).get("overall_rating", "D"),
+                "total_tasks": (evaluation_score or {}).get("total_tasks", 0),
+                "passed_tasks": (evaluation_score or {}).get("passed_tasks", 0),
                 "pass_rate": (
-                    evaluation_score.get("passed_tasks", 0)
-                    / max(evaluation_score.get("total_tasks", 1), 1)
+                    (evaluation_score or {}).get("passed_tasks", 0)
+                    / max((evaluation_score or {}).get("total_tasks", 1), 1)
                 ),
-                "veto_count": evaluation_score.get("veto_count", 0),
+                "veto_count": (evaluation_score or {}).get("veto_count", 0),
             },
-            "dimension_scores": evaluation_score.get("dimension_averages", {}),
+            "dimension_scores": (evaluation_score or {}).get("dimension_averages", {}),
             "task_details": [
                 {
                     "task_id": ts["task_id"],

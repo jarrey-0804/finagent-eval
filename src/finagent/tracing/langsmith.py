@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 __all__ = [
     "LangSmithTracer",
     "TraceContext",
-    "trace_evaluation",
+    "TraceEvaluation",
 ]
 
 # ---------------------------------------------------------------------------
@@ -323,11 +323,11 @@ class LangSmithTracer:
 
 
 # ---------------------------------------------------------------------------
-# trace_evaluation - 装饰器 / 上下文管理器
+# TraceEvaluation - 装饰器 / 上下文管理器
 # ---------------------------------------------------------------------------
 
 
-class trace_evaluation:
+class TraceEvaluation:
     """
     将评测函数包裹在 LangSmith 追踪中的装饰器 / 上下文管理器。
 
@@ -336,13 +336,13 @@ class trace_evaluation:
         tracer = LangSmithTracer()
         tracer.initialize()
 
-        @trace_evaluation(tracer, evaluation_id="eval-001", agent_id="agent-1", mode="full")
+        @TraceEvaluation(tracer, evaluation_id="eval-001", agent_id="agent-1", mode="full")
         def run_evaluation():
             ...
 
     用法示例（上下文管理器）::
 
-        with trace_evaluation(tracer, evaluation_id="eval-001", agent_id="agent-1", mode="full"):
+        with TraceEvaluation(tracer, evaluation_id="eval-001", agent_id="agent-1", mode="full"):
             run_evaluation()
     """
 
@@ -371,7 +371,7 @@ class trace_evaluation:
     # 上下文管理器协议
     # ------------------------------------------------------------------
 
-    def __enter__(self) -> trace_evaluation:
+    def __enter__(self) -> TraceEvaluation:
         self._run_id = self._tracer.start_evaluation_run(
             evaluation_id=self._evaluation_id,
             agent_id=self._agent_id,
@@ -393,7 +393,7 @@ class trace_evaluation:
         )
 
         # 不吞掉异常，让上层处理
-        return False
+        return False  # type: ignore[return-value]
 
     # ------------------------------------------------------------------
     # 装饰器协议

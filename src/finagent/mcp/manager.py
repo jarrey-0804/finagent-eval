@@ -76,42 +76,56 @@ class MCPServerManager:
             name="sec_edgar",
             command="npx",
             args=["-y", "@modelcontextprotocol/server-sec-edgar"],
+            working_dir=None,
+            health_check_url=None,
             tools=["search_filings", "get_filing", "get_company_facts"],
         ),
         "yahoo_finance": MCPServerConfig(
             name="yahoo_finance",
             command="npx",
             args=["-y", "@anthropic/mcp-yahoo-finance"],
+            working_dir=None,
+            health_check_url=None,
             tools=["get_stock_price", "get_stock_info", "search_stocks"],
         ),
         "akshare": MCPServerConfig(
             name="akshare",
             command="python",
             args=["-m", "mcp_server_akshare"],
+            working_dir=None,
+            health_check_url=None,
             tools=["get_a_stock_price", "get_a_stock_info", "get_index_data"],
         ),
         "tushare": MCPServerConfig(
             name="tushare",
             command="python",
             args=["-m", "mcp_server_tushare"],
+            working_dir=None,
+            health_check_url=None,
             tools=["get_daily", "get_adj_factor", "get_stock_basic"],
         ),
         "calculator": MCPServerConfig(
             name="calculator",
             command="npx",
             args=["-y", "@anthropic/mcp-calculator"],
+            working_dir=None,
+            health_check_url=None,
             tools=["calculate"],
         ),
         "web_search": MCPServerConfig(
             name="web_search",
             command="npx",
             args=["-y", "@anthropic/mcp-web-search"],
+            working_dir=None,
+            health_check_url=None,
             tools=["search", "fetch"],
         ),
         "filesystem": MCPServerConfig(
             name="filesystem",
             command="npx",
             args=["-y", "@anthropic/mcp-filesystem", "/data"],
+            working_dir=None,
+            health_check_url=None,
             tools=["read_file", "write_file", "list_directory"],
         ),
     }
@@ -229,7 +243,7 @@ class MCPServerManager:
 
     def list_servers(self) -> list[dict]:
         """列出所有服务器"""
-        return [self.get_server_status(name) for name in self._servers]
+        return [status for name in self._servers if (status := self.get_server_status(name)) is not None]
 
     def get_available_tools(self) -> dict[str, list[str]]:
         """获取所有可用工具"""

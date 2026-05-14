@@ -58,7 +58,7 @@ class RedisTaskStore:
 
     def __init__(self, config: RedisSchedulerConfig | None = None):
         self.config = config or RedisSchedulerConfig()
-        self._redis = None
+        self._redis: Any = None
         self._available = False
 
     async def initialize(self):
@@ -164,7 +164,7 @@ class RedisTaskStore:
         if not self.is_available:
             return 0
         try:
-            return await self._redis.zcard(f"{self.config.queue_key_prefix}:tasks")
+            return int(await self._redis.zcard(f"{self.config.queue_key_prefix}:tasks"))
         except Exception:
             return 0
 
@@ -242,7 +242,7 @@ class RedisTaskStore:
         if not self.is_available:
             return 0
         try:
-            return await self._redis.scard(f"{self.config.running_key_prefix}:{instance_id}")
+            return int(await self._redis.scard(f"{self.config.running_key_prefix}:{instance_id}"))
         except Exception:
             return 0
 

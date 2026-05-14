@@ -7,6 +7,7 @@
 import base64
 import math
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -16,7 +17,7 @@ class ChartConfig:
     width: int = 800
     height: int = 600
     title: str = ""
-    colors: list[str] = None
+    colors: list[str] | None = None
 
     def __post_init__(self):
         if self.colors is None:
@@ -290,7 +291,7 @@ class AdversarialDecayChart(ChartRenderer):
     # 四个对抗级别的渐变颜色（绿→黄→橙→红）
     LEVEL_COLORS = ["#28a745", "#ffc107", "#fd7e14", "#dc3545"]
 
-    def render(self, data: list[dict]) -> str:
+    def render(self, data: dict) -> str:  # type: ignore[override]
         """
         渲染对抗性衰减柱状图。
 
@@ -306,11 +307,13 @@ class AdversarialDecayChart(ChartRenderer):
         if not data:
             return "<p>无对抗性衰减数据</p>"
 
-        return self._generate_decay_svg(data)
+        # AdversarialDecayChart 使用 list[dict] 数据
+        items = data if isinstance(data, list) else [data]
+        return self._generate_decay_svg(items)
 
-    def to_base64(self, data: list[dict]) -> str:
+    def to_base64(self, data: Any) -> str:
         """将SVG图表编码为base64字符串，用于嵌入HTML"""
-        svg_str = self.render(data)
+        svg_str = self.render(data)  # type: ignore[arg-type]
         encoded = base64.b64encode(svg_str.encode("utf-8")).decode("utf-8")
         return f"data:image/svg+xml;base64,{encoded}"
 

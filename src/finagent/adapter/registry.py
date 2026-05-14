@@ -6,7 +6,7 @@
 """
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from ..interface import FinancialAgentInterface
 from .autogen import AutoGenAdapter
@@ -54,8 +54,8 @@ class AdapterRegistry:
     def register(
         cls,
         framework: str,
-        adapter_class: type[FinancialAgentInterface] = None,
-        factory: Callable = None,
+        adapter_class: type[FinancialAgentInterface] | None = None,
+        factory: Callable | None = None,
     ) -> None:
         """
         注册框架适配器。
@@ -182,7 +182,7 @@ class AdapterRegistry:
         # 优先使用工厂函数
         if framework in cls._factories:
             factory = cls._factories[framework]
-            return factory(agent_instance=agent_instance, **kwargs)
+            return cast(FinancialAgentInterface, factory(agent_instance=agent_instance, **kwargs))
 
         # 使用适配器类
         if framework in cls._adapters:

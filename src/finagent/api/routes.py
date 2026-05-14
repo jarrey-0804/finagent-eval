@@ -6,6 +6,7 @@ API路由模块
 
 import uuid
 from datetime import datetime
+from typing import Any, cast
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
@@ -473,6 +474,9 @@ class EvaluationRouter:
                     agent_id=agent_id,
                     eval_mode=request.eval_mode,
                     task_count=request.task_count,
+                    dimensions=None,
+                    endpoint_url=None,
+                    headers=None,
                 )
 
                 # 保存评测信息
@@ -524,20 +528,27 @@ class EvaluationRouter:
 
             if request.endpoint_url:
                 # HTTP适配器
-                agent = registry.create_http_adapter(
+                agent = registry.create_adapter(
+                    framework="http",
                     endpoint_url=request.endpoint_url,
                     headers=request.headers or {},
                     agent_config=AgentConfig(
-                        agent_id=request.agent_id,
                         agent_name=request.agent_id,
                         agent_type=AgentType(request.agent_type),
+                        version="1.0.0",
+                        framework="http",
+                        llm_backend="unknown",
                     ),
                 )
             else:
                 # 模拟适配器（用于测试）
-                from ..adapter.langgraph import MockLangGraphAdapter
+                from ..adapter.langgraph import LangGraphAdapter
 
-                agent = MockLangGraphAdapter()
+                agent = LangGraphAdapter(
+                    agent_name=request.agent_id,
+                    agent_type=AgentType(request.agent_type),
+                    graph=None,
+                )
 
             # 创建评测流水线
             eval_mode = EvalMode.QUICK if request.eval_mode == "quick" else EvalMode.FULL
@@ -662,8 +673,8 @@ class TaskRouter:
                 TaskInfo(
                     task_id=task.task_id,
                     task_type=task.task_type.value,
-                    query=task.query,
-                    dimensions=[d.value for d in task.dimensions],
+                    query=task.input_data.get("query", ""),
+                    dimensions=[task.dimension],
                     difficulty=task.metadata.get("difficulty", "medium"),
                     source=task.metadata.get("source", "unknown"),
                 )
@@ -769,26 +780,27 @@ class BenchmarkRouter:
         @self.router.post("", response_model=BenchmarkResponse)
         async def get_industry_benchmark(request: BenchmarkRequest):
             """获取行业基准对比数据"""
-            benchmark = INDUSTRY_BENCHMARKS.get(
+            benchmark: dict = INDUSTRY_BENCHMARKS.get(
                 request.agent_type, INDUSTRY_BENCHMARKS["investment_decision"]
             )
 
             # Get agent's latest evaluation score (from running evaluations or mock)
-            agent_score = 75.0  # Would come from database in production
+            agent_score: float = 75.0  # Would come from database in production
 
             # Calculate percentile rank
             percentile = min(99.0, max(1.0, ((agent_score - 40) / 60) * 100))
 
             # Dimension comparison
+            benchmark_dimensions: dict = benchmark.get("dimensions", {})
             dim_comparison = []
-            for dim, bench_score in benchmark["dimensions"].items():
+            for dim, bench_score in benchmark_dimensions.items():
                 agent_dim_score = agent_score + (hash(dim) % 20 - 10)  # Simulated
                 dim_comparison.append(
                     {
                         "dimension": dim,
                         "agent_score": round(max(0, min(100, agent_dim_score)), 1),
-                        "benchmark_avg": bench_score,
-                        "gap": round(max(0, min(100, agent_dim_score)) - bench_score, 1),
+                        "benchmark_avg": float(bench_score),
+                        "gap": round(max(0, min(100, agent_dim_score)) - float(bench_score), 1),
                     }
                 )
 
@@ -801,17 +813,17 @@ class BenchmarkRouter:
                 )
             if percentile < 50:
                 recommendations.append("当前评分低于行业中位数，建议进行系统性优化")
-            if agent_score > benchmark["p75"]:
+            if agent_score > float(benchmark.get("p75", 85.0)):
                 recommendations.append("表现优秀，已超过行业75%分位")
 
             return BenchmarkResponse(
                 agent_id=request.agent_id,
                 agent_type=request.agent_type,
                 agent_score=agent_score,
-                benchmark_avg=benchmark["avg"],
-                benchmark_p50=benchmark["p50"],
-                benchmark_p75=benchmark["p75"],
-                benchmark_p90=benchmark["p90"],
+                benchmark_avg=float(benchmark.get("avg", 0)),
+                benchmark_p50=float(benchmark.get("p50", 0)),
+                benchmark_p75=float(benchmark.get("p75", 0)),
+                benchmark_p90=float(benchmark.get("p90", 0)),
                 percentile_rank=round(percentile, 1),
                 dimension_comparison=dim_comparison,
                 recommendations=recommendations,
@@ -834,13 +846,13 @@ class ComplianceRouter:
             import random
 
             checks = []
-            total_score = 0
+            total_score: float = 0.0
             risk_items = []
 
             for check in COMPLIANCE_CHECKS:
                 score = random.uniform(60, 100)
                 passed = score >= 70
-                total_score += score * check["weight"] / 100
+                total_score += score * float(cast(float, check.get("weight", 0))) / 100
 
                 checks.append(
                     {
@@ -893,7 +905,7 @@ class ImprovementRouter:
         @self.router.post("/suggestions", response_model=ImprovementResponse)
         async def get_improvement_suggestions(request: ImprovementRequest):
             """基于评测结果生成智能改进建议"""
-            suggestions = [
+            suggestions: list[dict[str, Any]] = [
                 {
                     "priority": "high",
                     "dimension": "accuracy",

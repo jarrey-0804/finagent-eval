@@ -2,7 +2,7 @@
 tracing/langsmith.py 单元测试
 
 测试 LangSmith 追踪封装类、TraceContext 数据类、
-trace_evaluation 装饰器/上下文管理器的功能。
+TraceEvaluation 装饰器/上下文管理器的功能。
 """
 
 import asyncio
@@ -13,7 +13,7 @@ import pytest
 from finagent.tracing.langsmith import (
     LangSmithTracer,
     TraceContext,
-    trace_evaluation,
+    TraceEvaluation,
 )
 
 
@@ -283,7 +283,7 @@ class TestLangSmithTracer:
 
 
 # ---------------------------------------------------------------------------
-# trace_evaluation 测试
+# TraceEvaluation 测试
 # ---------------------------------------------------------------------------
 
 class TestTraceEvaluation:
@@ -294,7 +294,7 @@ class TestTraceEvaluation:
         mock_tracer.start_evaluation_run.return_value = "run-001"
         mock_tracer.end_run = MagicMock()
 
-        with trace_evaluation(mock_tracer, "eval-001", "agent-1", "full") as te:
+        with TraceEvaluation(mock_tracer, "eval-001", "agent-1", "full") as te:
             assert te.context.run_id == "run-001"
             assert te.context.evaluation_id == "eval-001"
 
@@ -310,7 +310,7 @@ class TestTraceEvaluation:
         mock_tracer.end_run = MagicMock()
 
         with pytest.raises(ValueError, match="测试错误"):
-            with trace_evaluation(mock_tracer, "eval-001", "agent-1", "full"):
+            with TraceEvaluation(mock_tracer, "eval-001", "agent-1", "full"):
                 raise ValueError("测试错误")
 
         mock_tracer.end_run.assert_called_once()
@@ -324,7 +324,7 @@ class TestTraceEvaluation:
         mock_tracer.start_evaluation_run.return_value = "run-001"
         mock_tracer.end_run = MagicMock()
 
-        @trace_evaluation(mock_tracer, "eval-001", "agent-1", "full")
+        @TraceEvaluation(mock_tracer, "eval-001", "agent-1", "full")
         def my_eval():
             return "result"
 
@@ -340,7 +340,7 @@ class TestTraceEvaluation:
         mock_tracer.start_evaluation_run.return_value = "run-001"
         mock_tracer.end_run = MagicMock()
 
-        @trace_evaluation(mock_tracer, "eval-001", "agent-1", "full")
+        @TraceEvaluation(mock_tracer, "eval-001", "agent-1", "full")
         async def my_async_eval():
             return "async-result"
 
@@ -355,7 +355,7 @@ class TestTraceEvaluation:
         mock_tracer.start_task_run.return_value = "child-run-001"
         mock_tracer.end_run = MagicMock()
 
-        te = trace_evaluation(mock_tracer, "eval-001", "agent-1", "full")
+        te = TraceEvaluation(mock_tracer, "eval-001", "agent-1", "full")
         te._run_id = "parent-run-001"
 
         with te.task_run("task-001", "accuracy") as child_ctx:
@@ -372,7 +372,7 @@ class TestTraceEvaluation:
         mock_tracer.start_task_run.return_value = "child-run-001"
         mock_tracer.end_run = MagicMock()
 
-        te = trace_evaluation(mock_tracer, "eval-001", "agent-1", "full")
+        te = TraceEvaluation(mock_tracer, "eval-001", "agent-1", "full")
         te._run_id = "parent-run-001"
 
         with pytest.raises(RuntimeError, match="子任务失败"):
@@ -388,7 +388,7 @@ class TestTraceEvaluation:
         mock_tracer = MagicMock(spec=LangSmithTracer)
         mock_tracer.log_evaluation_score = MagicMock()
 
-        te = trace_evaluation(mock_tracer, "eval-001", "agent-1", "full")
+        te = TraceEvaluation(mock_tracer, "eval-001", "agent-1", "full")
         te._run_id = "parent-run-001"
 
         te.log_score("accuracy", 85.0, details={"test": True})
@@ -404,7 +404,7 @@ class TestTraceEvaluation:
         mock_tracer = MagicMock(spec=LangSmithTracer)
         mock_tracer.log_evaluation_score = MagicMock()
 
-        te = trace_evaluation(mock_tracer, "eval-001", "agent-1", "full")
+        te = TraceEvaluation(mock_tracer, "eval-001", "agent-1", "full")
         te._run_id = "parent-run-001"
 
         te.log_score("accuracy", 85.0, run_id="custom-run-999")

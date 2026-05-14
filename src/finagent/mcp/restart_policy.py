@@ -143,7 +143,7 @@ class RestartPolicy:
             if attempts >= self.circuit_breaker_threshold:
                 self._open_circuit(server_name)
 
-        return success
+        return bool(success)
 
     def reset(self, server_name: str):
         """重置重启策略"""
@@ -185,8 +185,8 @@ class RestartPolicy:
             return self.base_delay
 
         elif self.strategy == RestartStrategy.EXPONENTIAL_BACKOFF:
-            delay = self.base_delay * (2**attempt)
-            return min(delay, self.max_delay)
+            delay = self.base_delay * (2 ** attempt)
+            return float(min(delay, self.max_delay))
 
         elif self.strategy == RestartStrategy.CIRCUIT_BREAKER:
             return self.base_delay

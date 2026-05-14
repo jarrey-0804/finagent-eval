@@ -8,6 +8,7 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 from ..interface.models import EvalResponse, EvalTask
 
@@ -66,7 +67,7 @@ class DataQualityMonitor:
         Returns:
             检查结果，包含 is_valid 和 issues
         """
-        result = {"task_id": task.task_id, "is_valid": True, "issues": []}
+        result: dict[str, Any] = {"task_id": task.task_id, "is_valid": True, "issues": []}
 
         # 唯一性检查
         if task.task_id in self.task_ids:
@@ -120,7 +121,7 @@ class DataQualityMonitor:
         Returns:
             检查结果
         """
-        result = {"is_valid": True, "issues": []}
+        result: dict[str, Any] = {"is_valid": True, "issues": []}
 
         # 统计响应类型
         if response.error:

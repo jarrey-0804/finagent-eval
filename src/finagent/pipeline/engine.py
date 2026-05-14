@@ -129,11 +129,14 @@ class EvaluationEngine:
             # 阶段2: 评分
             task_response_pairs = []
             for task, response in zip(tasks, responses, strict=False):
-                task_response_pairs.append((task, response, task.reference_answer))
+                reference = (
+                    task.input_data.get("reference_answer", "")
+                    if isinstance(task.input_data, dict)
+                    else None
+                )
+                task_response_pairs.append((task, response, reference))
 
-            agent_id = (
-                self.agent.get_config().agent_id if hasattr(self.agent, "get_config") else "unknown"
-            )
+            agent_id = self.agent.get_config().agent_name
             eval_score = self.scoring_engine.score_evaluation(task_response_pairs, agent_id)
 
             # 阶段3: 否决检查
@@ -168,15 +171,14 @@ class EvaluationEngine:
     ) -> list[EvalResponse]:
         """并发执行Agent任务"""
         semaphore = asyncio.Semaphore(self.config.max_concurrent_tasks)
-        responses = []
 
         async def execute_one(task: EvalTask) -> EvalResponse:
             async with semaphore:
                 for attempt in range(self.config.max_retries + 1):
                     try:
                         response = await asyncio.wait_for(
-                            self.agent.ainvoke(task.query, task.context or {}),
-                            timeout=task.timeout_seconds or self.config.task_timeout_seconds,
+                            self.agent.ainvoke(task),
+                            timeout=task.time_limit_seconds or self.config.task_timeout_seconds,
                         )
                         return response
                     except TimeoutError:
@@ -199,10 +201,10 @@ class EvaluationEngine:
                 return EvalResponse(task_id=task.task_id, output="", error="未知错误")
 
         coroutines = [execute_one(task) for task in tasks]
-        responses = await asyncio.gather(*coroutines, return_exceptions=True)
+        raw_responses = await asyncio.gather(*coroutines, return_exceptions=True)
 
-        final = []
-        for i, resp in enumerate(responses):
+        final: list[EvalResponse] = []
+        for i, resp in enumerate(raw_responses):
             if isinstance(resp, Exception):
                 final.append(
                     EvalResponse(
@@ -211,7 +213,7 @@ class EvaluationEngine:
                         error=str(resp),
                     )
                 )
-            else:
+            elif isinstance(resp, EvalResponse):
                 final.append(resp)
 
         return final

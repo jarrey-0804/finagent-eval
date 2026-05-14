@@ -10,7 +10,7 @@ import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from pydantic import BaseModel, Field
 
@@ -283,6 +283,11 @@ class EvalPipeline:
         self._state: PipelineState | None = None
         self._checkpointer = None
 
+    @property
+    def state(self) -> PipelineState:
+        assert self._state is not None, "Pipeline state not initialized"
+        return self._state
+
     def _init_state(self, agent_id: str) -> PipelineState:
         """初始化流水线状态"""
         return PipelineState(
@@ -328,7 +333,7 @@ class EvalPipeline:
         # 初始化状态
         self._state = self._init_state(agent_id)
         result = PipelineResult(
-            pipeline_id=self._state["pipeline_id"],
+            pipeline_id=self.state["pipeline_id"],
             agent_id=agent_id,
             status=EvalStatus.RUNNING,
             started_at=datetime.now(),
@@ -336,54 +341,54 @@ class EvalPipeline:
 
         try:
             # 阶段1: 任务生成
-            self._state["current_stage"] = PipelineStage.TASK_GENERATION.value
+            self.state["current_stage"] = PipelineStage.TASK_GENERATION.value
             if tasks is None:
                 tasks = await self._generate_tasks()
-            self._state["tasks"] = [self._task_to_dict(t) for t in tasks]
+            self.state["tasks"] = [self._task_to_dict(t) for t in tasks]
 
             # 阶段2: Agent执行
-            self._state["current_stage"] = PipelineStage.AGENT_EXECUTION.value
+            self.state["current_stage"] = PipelineStage.AGENT_EXECUTION.value
             responses = await self._execute_tasks(tasks)
-            self._state["responses"] = [self._response_to_dict(r) for r in responses]
+            self.state["responses"] = [self._response_to_dict(r) for r in responses]
 
             # 阶段3: 评分
-            self._state["current_stage"] = PipelineStage.SCORING.value
+            self.state["current_stage"] = PipelineStage.SCORING.value
             task_scores = await self._score_tasks(tasks, responses)
-            self._state["task_scores"] = [self._task_score_to_dict(s) for s in task_scores]
+            self.state["task_scores"] = [self._task_score_to_dict(s) for s in task_scores]
 
             # 阶段4: 聚合
-            self._state["current_stage"] = PipelineStage.AGGREGATION.value
+            self.state["current_stage"] = PipelineStage.AGGREGATION.value
             evaluation_score = await self._aggregate_scores(tasks, responses, task_scores)
-            self._state["evaluation_score"] = self._eval_score_to_dict(evaluation_score)
+            self.state["evaluation_score"] = self._eval_score_to_dict(evaluation_score)
             result.evaluation_score = evaluation_score
 
             # 阶段5: 报告生成
             if self.config.generate_report:
-                self._state["current_stage"] = PipelineStage.REPORTING.value
+                self.state["current_stage"] = PipelineStage.REPORTING.value
                 report = await self._generate_report(evaluation_score)
-                self._state["report"] = report
+                self.state["report"] = report
                 result.report = report
 
             # 完成
-            self._state["status"] = EvalStatus.COMPLETED.value
-            self._state["current_stage"] = PipelineStage.COMPLETED.value
+            self.state["status"] = EvalStatus.COMPLETED.value
+            self.state["current_stage"] = PipelineStage.COMPLETED.value
             result.status = EvalStatus.COMPLETED
 
         except Exception as e:
-            self._state["status"] = EvalStatus.FAILED.value
-            self._state["current_stage"] = PipelineStage.FAILED.value
-            self._state["errors"].append(
+            self.state["status"] = EvalStatus.FAILED.value
+            self.state["current_stage"] = PipelineStage.FAILED.value
+            self.state["errors"].append(
                 {
-                    "stage": self._state["current_stage"],
+                    "stage": self.state["current_stage"],
                     "error": str(e),
                     "timestamp": datetime.now().isoformat(),
                 }
             )
             result.status = EvalStatus.FAILED
-            result.errors = self._state["errors"]
+            result.errors = self.state["errors"]
 
         finally:
-            self._state["completed_at"] = datetime.now().isoformat()
+            self.state["completed_at"] = datetime.now().isoformat()
             result.completed_at = datetime.now()
 
         return result
@@ -441,7 +446,7 @@ class EvalPipeline:
                         error=str(response),
                     )
                 )
-            else:
+            elif isinstance(response, EvalResponse):
                 final_responses.append(response)
 
         return final_responses
@@ -449,14 +454,9 @@ class EvalPipeline:
     async def _execute_single_task(self, task: EvalTask) -> EvalResponse:
         """执行单个任务"""
         try:
-            query = (
-                task.input_data.get("query", "")
-                if isinstance(task.input_data, dict)
-                else str(task.input_data)
-            )
             timeout = task.time_limit_seconds or self.config.task_timeout_seconds
             response = await asyncio.wait_for(
-                self.agent.ainvoke(query, task.context),
+                self.agent.ainvoke(task),
                 timeout=timeout,
             )
             return response
@@ -513,16 +513,16 @@ class EvalPipeline:
 
         return self.scoring_engine.score_evaluation(
             task_response_pairs,
-            self._state["agent_id"],
+            self.state["agent_id"],
         )
 
     async def _generate_report(self, evaluation_score: EvaluationScore) -> dict:
         """生成评测报告"""
 
         report = {
-            "pipeline_id": self._state["pipeline_id"],
-            "agent_id": self._state["agent_id"],
-            "eval_mode": self._state["eval_mode"],
+            "pipeline_id": self.state["pipeline_id"],
+            "agent_id": self.state["agent_id"],
+            "eval_mode": self.state["eval_mode"],
             "generated_at": datetime.now().isoformat(),
             "summary": {
                 "overall_score": evaluation_score.overall_score,
@@ -606,7 +606,7 @@ class EvalPipeline:
         self._state = await self._load_checkpoint(state, checkpointer, evaluation_id)
         self._validate_resume_state()
 
-        current_stage = self._state.get("current_stage", PipelineStage.INIT.value)
+        current_stage = self.state.get("current_stage", PipelineStage.INIT.value)
         result = self._create_resume_result()
 
         try:
@@ -656,8 +656,8 @@ class EvalPipeline:
                 await self._resume_reporting(result)
 
             # 完成
-            self._state["status"] = EvalStatus.COMPLETED.value
-            self._state["current_stage"] = PipelineStage.COMPLETED.value
+            self.state["status"] = EvalStatus.COMPLETED.value
+            self.state["current_stage"] = PipelineStage.COMPLETED.value
             result.status = EvalStatus.COMPLETED
 
         except Exception as e:
@@ -667,7 +667,7 @@ class EvalPipeline:
             )
 
         finally:
-            self._state["completed_at"] = datetime.now().isoformat()
+            self.state["completed_at"] = datetime.now().isoformat()
             result.completed_at = datetime.now()
 
         return result
@@ -729,27 +729,27 @@ class EvalPipeline:
     def _create_resume_result(self) -> PipelineResult:
         """基于当前状态创建 PipelineResult。"""
         return PipelineResult(
-            pipeline_id=self._state["pipeline_id"],
-            agent_id=self._state["agent_id"],
+            pipeline_id=self.state["pipeline_id"],
+            agent_id=self.state["agent_id"],
             status=EvalStatus.RUNNING,
-            started_at=datetime.fromisoformat(self._state["started_at"])
-            if self._state.get("started_at")
+            started_at=datetime.fromisoformat(cast(str, self.state["started_at"]))
+            if self.state.get("started_at") is not None
             else datetime.now(),
         )
 
     def _handle_resume_error(self, result: PipelineResult, error: Exception) -> None:
         """处理恢复过程中的错误。"""
-        self._state["status"] = EvalStatus.FAILED.value
-        self._state["current_stage"] = PipelineStage.FAILED.value
-        self._state["errors"].append(
+        self.state["status"] = EvalStatus.FAILED.value
+        self.state["current_stage"] = PipelineStage.FAILED.value
+        self.state["errors"].append(
             {
-                "stage": self._state["current_stage"],
+                "stage": self.state["current_stage"],
                 "error": str(error),
                 "timestamp": datetime.now().isoformat(),
             }
         )
         result.status = EvalStatus.FAILED
-        result.errors = self._state["errors"]
+        result.errors = self.state["errors"]
         logger.error("流水线恢复执行失败: %s", error, exc_info=True)
 
     async def _resume_task_generation(
@@ -758,10 +758,10 @@ class EvalPipeline:
         evaluation_id: str | None,
     ) -> None:
         """恢复任务生成阶段。"""
-        self._state["current_stage"] = PipelineStage.TASK_GENERATION.value
-        if not self._state.get("tasks"):
+        self.state["current_stage"] = PipelineStage.TASK_GENERATION.value
+        if not self.state.get("tasks"):
             tasks = await self._generate_tasks()
-            self._state["tasks"] = [self._task_to_dict(t) for t in tasks]
+            self.state["tasks"] = [self._task_to_dict(t) for t in tasks]
         await self._save_checkpoint_if_available(
             checkpointer, evaluation_id, stage=PipelineStage.TASK_GENERATION.value
         )
@@ -772,15 +772,15 @@ class EvalPipeline:
         evaluation_id: str | None,
     ) -> None:
         """恢复 Agent 执行阶段。"""
-        self._state["current_stage"] = PipelineStage.AGENT_EXECUTION.value
+        self.state["current_stage"] = PipelineStage.AGENT_EXECUTION.value
 
-        all_tasks = self._dict_to_tasks(self._state["tasks"])
-        existing_count = len(self._state.get("responses", []))
+        all_tasks = self._dict_to_tasks(self.state["tasks"])
+        existing_count = len(self.state.get("responses", []))
 
         if existing_count < len(all_tasks):
             remaining_tasks = all_tasks[existing_count:]
             remaining_responses = await self._execute_tasks(remaining_tasks)
-            self._state["responses"].extend(
+            self.state["responses"].extend(
                 [self._response_to_dict(r) for r in remaining_responses]
             )
 
@@ -794,13 +794,13 @@ class EvalPipeline:
         evaluation_id: str | None,
     ) -> None:
         """恢复评分阶段。"""
-        self._state["current_stage"] = PipelineStage.SCORING.value
+        self.state["current_stage"] = PipelineStage.SCORING.value
 
-        if not self._state.get("task_scores"):
-            all_tasks = self._dict_to_tasks(self._state["tasks"])
-            all_responses = self._dict_to_responses(self._state["responses"])
+        if not self.state.get("task_scores"):
+            all_tasks = self._dict_to_tasks(self.state["tasks"])
+            all_responses = self._dict_to_responses(self.state["responses"])
             task_scores = await self._score_tasks(all_tasks, all_responses)
-            self._state["task_scores"] = [self._task_score_to_dict(s) for s in task_scores]
+            self.state["task_scores"] = [self._task_score_to_dict(s) for s in task_scores]
 
         await self._save_checkpoint_if_available(
             checkpointer, evaluation_id, stage=PipelineStage.SCORING.value
@@ -813,16 +813,16 @@ class EvalPipeline:
         evaluation_id: str | None,
     ) -> None:
         """恢复聚合阶段。"""
-        self._state["current_stage"] = PipelineStage.AGGREGATION.value
+        self.state["current_stage"] = PipelineStage.AGGREGATION.value
 
-        if self._state.get("evaluation_score") is None:
-            all_tasks = self._dict_to_tasks(self._state["tasks"])
-            all_responses = self._dict_to_responses(self._state["responses"])
-            all_task_scores = self._dict_to_task_scores(self._state["task_scores"])
+        if self.state.get("evaluation_score") is None:
+            all_tasks = self._dict_to_tasks(self.state["tasks"])
+            all_responses = self._dict_to_responses(self.state["responses"])
+            all_task_scores = self._dict_to_task_scores(self.state["task_scores"])
             evaluation_score = await self._aggregate_scores(
                 all_tasks, all_responses, all_task_scores
             )
-            self._state["evaluation_score"] = self._eval_score_to_dict(evaluation_score)
+            self.state["evaluation_score"] = self._eval_score_to_dict(evaluation_score)
             result.evaluation_score = evaluation_score
 
         await self._save_checkpoint_if_available(
@@ -832,11 +832,11 @@ class EvalPipeline:
     async def _resume_reporting(self, result: PipelineResult) -> None:
         """恢复报告生成阶段。"""
         if self.config.generate_report:
-            self._state["current_stage"] = PipelineStage.REPORTING.value
+            self.state["current_stage"] = PipelineStage.REPORTING.value
 
-            if self._state.get("report") is None and result.evaluation_score is not None:
+            if self.state.get("report") is None and result.evaluation_score is not None:
                 report = await self._generate_report(result.evaluation_score)
-                self._state["report"] = report
+                self.state["report"] = report
                 result.report = report
 
     async def _save_checkpoint_if_available(
@@ -851,7 +851,7 @@ class EvalPipeline:
         try:
             await checkpointer.save_checkpoint(
                 evaluation_id=evaluation_id,
-                task_index=self._state.get("current_task_index", 0),
+                task_index=self.state.get("current_task_index", 0),
                 state_data=dict(self._state),
                 metadata={"stage": stage},
             )
@@ -922,12 +922,10 @@ class EvalPipeline:
 
     # 序列化辅助方法
     def _task_to_dict(self, task: EvalTask) -> dict:
-        task_type = task.task_type
-        if hasattr(task_type, "value"):
-            task_type = task_type.value
+        task_type_value: str = task.task_type.value if hasattr(task.task_type, "value") else str(task.task_type)
         return {
             "task_id": task.task_id,
-            "task_type": task_type,
+            "task_type": task_type_value,
             "query": task.input_data.get("query", "") if isinstance(task.input_data, dict) else "",
             "context": task.context,
             "dimensions": task.input_data.get("dimensions", [])
@@ -948,13 +946,11 @@ class EvalPipeline:
         }
 
     def _task_score_to_dict(self, score: TaskScore) -> dict:
-        rating = score.rating
-        if hasattr(rating, "value"):
-            rating = rating.value
+        rating_value: str = score.rating.value if hasattr(score.rating, "value") else str(score.rating)
         return {
             "task_id": score.task_id,
             "overall_score": score.overall_score,
-            "rating": rating,
+            "rating": rating_value,
             "veto_triggered": score.veto_triggered,
             "dimension_scores": [
                 {
@@ -969,13 +965,11 @@ class EvalPipeline:
         }
 
     def _eval_score_to_dict(self, score: EvaluationScore) -> dict:
-        overall_rating = score.overall_rating
-        if hasattr(overall_rating, "value"):
-            overall_rating = overall_rating.value
+        overall_rating_value: str = score.overall_rating.value if hasattr(score.overall_rating, "value") else str(score.overall_rating)
         return {
             "agent_id": score.agent_id,
             "overall_score": score.overall_score,
-            "overall_rating": overall_rating,
+            "overall_rating": overall_rating_value,
             "total_tasks": score.total_tasks,
             "passed_tasks": score.passed_tasks,
             "veto_count": score.veto_count,
@@ -1023,6 +1017,11 @@ class ThreeStagePipeline:
         self._state: PipelineState | None = None
         self._phase_results: dict[EvalPhase, PhaseResult] = {}
 
+    @property
+    def state(self) -> PipelineState:
+        assert self._state is not None, "Pipeline state not initialized"
+        return self._state
+
     # ------------------------------------------------------------------
     # 公开接口
     # ------------------------------------------------------------------
@@ -1049,7 +1048,7 @@ class ThreeStagePipeline:
         self._phase_results = {}
 
         result = PipelineResult(
-            pipeline_id=self._state["pipeline_id"],
+            pipeline_id=self.state["pipeline_id"],
             agent_id=agent_id,
             status=EvalStatus.RUNNING,
             started_at=datetime.now(),
@@ -1062,7 +1061,7 @@ class ThreeStagePipeline:
             for phase in phases_to_run:
                 phase_result = await self._run_phase(phase, agent_id)
                 self._phase_results[phase] = phase_result
-                self._state["phase_results"][phase.value] = phase_result.to_dict()
+                self.state["phase_results"][phase.value] = phase_result.to_dict()
 
                 # 保存阶段检查点
                 logger.info(
@@ -1076,37 +1075,37 @@ class ThreeStagePipeline:
 
             # 聚合所有阶段结果
             evaluation_score = self._aggregate_phase_results()
-            self._state["evaluation_score"] = self._eval_score_to_dict(evaluation_score)
+            self.state["evaluation_score"] = self._eval_score_to_dict(evaluation_score)
             result.evaluation_score = evaluation_score
 
             # 生成报告
             if self.config.generate_report:
-                self._state["current_stage"] = PipelineStage.REPORTING.value
+                self.state["current_stage"] = PipelineStage.REPORTING.value
                 report = self._generate_three_stage_report(evaluation_score)
-                self._state["report"] = report
+                self.state["report"] = report
                 result.report = report
 
-            self._state["status"] = EvalStatus.COMPLETED.value
-            self._state["current_stage"] = PipelineStage.COMPLETED.value
+            self.state["status"] = EvalStatus.COMPLETED.value
+            self.state["current_stage"] = PipelineStage.COMPLETED.value
             result.status = EvalStatus.COMPLETED
 
         except Exception as e:
-            self._state["status"] = EvalStatus.FAILED.value
-            self._state["current_stage"] = PipelineStage.FAILED.value
-            self._state["errors"].append(
+            self.state["status"] = EvalStatus.FAILED.value
+            self.state["current_stage"] = PipelineStage.FAILED.value
+            self.state["errors"].append(
                 {
-                    "stage": self._state["current_stage"],
-                    "phase": self._state.get("current_phase", ""),
+                    "stage": self.state["current_stage"],
+                    "phase": self.state.get("current_phase", ""),
                     "error": str(e),
                     "timestamp": datetime.now().isoformat(),
                 }
             )
             result.status = EvalStatus.FAILED
-            result.errors = self._state["errors"]
+            result.errors = self.state["errors"]
             logger.error("三阶段流水线执行失败: %s", e, exc_info=True)
 
         finally:
-            self._state["completed_at"] = datetime.now().isoformat()
+            self.state["completed_at"] = datetime.now().isoformat()
             result.completed_at = datetime.now()
 
         return result
@@ -1151,14 +1150,14 @@ class ThreeStagePipeline:
 
             # 聚合所有阶段结果
             evaluation_score = self._aggregate_phase_results()
-            self._state["evaluation_score"] = self._eval_score_to_dict(evaluation_score)
+            self.state["evaluation_score"] = self._eval_score_to_dict(evaluation_score)
             result.evaluation_score = evaluation_score
 
             # 生成报告
             await self._resume_three_stage_reporting(result)
 
-            self._state["status"] = EvalStatus.COMPLETED.value
-            self._state["current_stage"] = PipelineStage.COMPLETED.value
+            self.state["status"] = EvalStatus.COMPLETED.value
+            self.state["current_stage"] = PipelineStage.COMPLETED.value
             result.status = EvalStatus.COMPLETED
 
         except Exception as e:
@@ -1168,7 +1167,7 @@ class ThreeStagePipeline:
             )
 
         finally:
-            self._state["completed_at"] = datetime.now().isoformat()
+            self.state["completed_at"] = datetime.now().isoformat()
             result.completed_at = datetime.now()
 
         return result
@@ -1230,43 +1229,43 @@ class ThreeStagePipeline:
     def _create_resume_result(self) -> PipelineResult:
         """基于当前状态创建 PipelineResult。"""
         return PipelineResult(
-            pipeline_id=self._state["pipeline_id"],
-            agent_id=self._state["agent_id"],
+            pipeline_id=self.state["pipeline_id"],
+            agent_id=self.state["agent_id"],
             status=EvalStatus.RUNNING,
-            started_at=datetime.fromisoformat(self._state["started_at"])
-            if self._state.get("started_at")
+            started_at=datetime.fromisoformat(cast(str, self.state["started_at"]))
+            if self.state.get("started_at") is not None
             else datetime.now(),
         )
 
     def _handle_resume_error(self, result: PipelineResult, error: Exception) -> None:
         """处理恢复过程中的错误。"""
-        self._state["status"] = EvalStatus.FAILED.value
-        self._state["current_stage"] = PipelineStage.FAILED.value
-        self._state["errors"].append(
+        self.state["status"] = EvalStatus.FAILED.value
+        self.state["current_stage"] = PipelineStage.FAILED.value
+        self.state["errors"].append(
             {
-                "stage": self._state["current_stage"],
-                "phase": self._state.get("current_phase", ""),
+                "stage": self.state["current_stage"],
+                "phase": self.state.get("current_phase", ""),
                 "error": str(error),
                 "timestamp": datetime.now().isoformat(),
             }
         )
         result.status = EvalStatus.FAILED
-        result.errors = self._state["errors"]
+        result.errors = self.state["errors"]
         logger.error("三阶段流水线恢复执行失败: %s", error, exc_info=True)
 
     def _restore_phase_results(self) -> None:
         """从状态中恢复已完成的阶段结果到 _phase_results。"""
         self._phase_results = {}
         for phase in PHASE_ORDER:
-            phase_data = self._state.get("phase_results", {}).get(phase.value)
+            phase_data = self.state.get("phase_results", {}).get(phase.value)
             if phase_data:
                 self._phase_results[phase] = PhaseResult(
                     phase=phase,
                     started_at=datetime.fromisoformat(phase_data["started_at"])
-                    if phase_data.get("started_at")
+                    if phase_data.get("started_at") is not None
                     else None,
                     completed_at=datetime.fromisoformat(phase_data["completed_at"])
-                    if phase_data.get("completed_at")
+                    if phase_data.get("completed_at") is not None
                     else None,
                 )
 
@@ -1275,12 +1274,12 @@ class ThreeStagePipeline:
 
         根据 current_phase 和该阶段是否已完成（有 overall_score）来判断。
         """
-        completed_phase = self._state.get("current_phase", EvalPhase.STATIC.value)
+        completed_phase = self.state.get("current_phase", EvalPhase.STATIC.value)
         phases_to_run = self._get_phases_to_run()
 
         for i, phase in enumerate(phases_to_run):
             if phase.value == completed_phase:
-                phase_data = self._state.get("phase_results", {}).get(phase.value, {})
+                phase_data = self.state.get("phase_results", {}).get(phase.value, {})
                 if phase_data.get("overall_score") is not None:
                     return i + 1  # 从下一个阶段开始
                 else:
@@ -1297,9 +1296,9 @@ class ThreeStagePipeline:
     ) -> None:
         """执行剩余的评估阶段。"""
         for phase in phases_to_run[resume_from_index:]:
-            phase_result = await self._run_phase(phase, self._state["agent_id"])
+            phase_result = await self._run_phase(phase, self.state["agent_id"])
             self._phase_results[phase] = phase_result
-            self._state["phase_results"][phase.value] = phase_result.to_dict()
+            self.state["phase_results"][phase.value] = phase_result.to_dict()
 
             # 保存检查点
             await self._save_checkpoint_if_available(
@@ -1309,10 +1308,10 @@ class ThreeStagePipeline:
     async def _resume_three_stage_reporting(self, result: PipelineResult) -> None:
         """恢复三阶段流水线的报告生成。"""
         if self.config.generate_report:
-            self._state["current_stage"] = PipelineStage.REPORTING.value
-            if self._state.get("report") is None:
+            self.state["current_stage"] = PipelineStage.REPORTING.value
+            if self.state.get("report") is None and result.evaluation_score is not None:
                 report = self._generate_three_stage_report(result.evaluation_score)
-                self._state["report"] = report
+                self.state["report"] = report
                 result.report = report
 
     def get_state(self) -> PipelineState | None:
@@ -1365,8 +1364,8 @@ class ThreeStagePipeline:
         phase_result = PhaseResult(phase=phase, started_at=datetime.now())
 
         stage = PHASE_STAGE_MAP[phase]
-        self._state["current_stage"] = stage.value
-        self._state["current_phase"] = phase.value
+        self.state["current_stage"] = stage.value
+        self.state["current_phase"] = phase.value
 
         logger.info("开始执行阶段: %s", phase.value)
 
@@ -1393,9 +1392,9 @@ class ThreeStagePipeline:
             phase_result.evaluation_score = evaluation_score
 
             # 合并到全局状态
-            self._state["tasks"].extend([self._task_to_dict(t) for t in tasks])
-            self._state["responses"].extend([self._response_to_dict(r) for r in responses])
-            self._state["task_scores"].extend([self._task_score_to_dict(s) for s in task_scores])
+            self.state["tasks"].extend([self._task_to_dict(t) for t in tasks])
+            self.state["responses"].extend([self._response_to_dict(r) for r in responses])
+            self.state["task_scores"].extend([self._task_score_to_dict(s) for s in task_scores])
 
         except Exception as e:
             phase_result.errors.append(
@@ -1434,7 +1433,7 @@ class ThreeStagePipeline:
                         error=str(response),
                     )
                 )
-            else:
+            elif isinstance(response, EvalResponse):
                 final_responses.append(response)
 
         return final_responses
@@ -1442,14 +1441,9 @@ class ThreeStagePipeline:
     async def _execute_single_task(self, task: EvalTask) -> EvalResponse:
         """执行单个任务"""
         try:
-            query = (
-                task.input_data.get("query", "")
-                if isinstance(task.input_data, dict)
-                else str(task.input_data)
-            )
             timeout = task.time_limit_seconds or self.config.task_timeout_seconds
             response = await asyncio.wait_for(
-                self.agent.ainvoke(query, task.context),
+                self.agent.ainvoke(task),
                 timeout=timeout,
             )
             return response
@@ -1518,7 +1512,7 @@ class ThreeStagePipeline:
         if not all_task_scores:
             # 无任务时返回零分
             return EvaluationScore(
-                agent_id=self._state["agent_id"],
+                agent_id=self.state["agent_id"],
                 task_scores=[],
                 dimension_averages={},
                 overall_score=0.0,
@@ -1555,7 +1549,7 @@ class ThreeStagePipeline:
         veto_count = sum(1 for ts in all_task_scores if ts.veto_triggered)
 
         return EvaluationScore(
-            agent_id=self._state["agent_id"],
+            agent_id=self.state["agent_id"],
             task_scores=all_task_scores,
             dimension_averages=dimension_averages,
             overall_score=overall_score,
@@ -1567,10 +1561,11 @@ class ThreeStagePipeline:
 
     def _generate_three_stage_report(self, evaluation_score: EvaluationScore) -> dict:
         """生成三阶段评测报告，包含各阶段的独立分析"""
-        report = {
-            "pipeline_id": self._state["pipeline_id"],
-            "agent_id": self._state["agent_id"],
-            "eval_mode": self._state["eval_mode"],
+        phases_data: dict[str, Any] = {}
+        report: dict[str, Any] = {
+            "pipeline_id": self.state["pipeline_id"],
+            "agent_id": self.state["agent_id"],
+            "eval_mode": self.state["eval_mode"],
             "pipeline_type": "three_stage",
             "generated_at": datetime.now().isoformat(),
             "summary": {
@@ -1585,7 +1580,7 @@ class ThreeStagePipeline:
                 dim.value: score for dim, score in evaluation_score.dimension_averages.items()
             },
             # 三阶段独立报告
-            "phases": {},
+            "phases": phases_data,
         }
 
         # 各阶段详情
@@ -1613,7 +1608,7 @@ class ThreeStagePipeline:
                     )
                 if phase_result.errors:
                     phase_section["errors"] = phase_result.errors
-                report["phases"][phase.value] = phase_section
+                phases_data[phase.value] = phase_section
 
         # 总体建议
         report["recommendations"] = self._generate_recommendations(evaluation_score)
@@ -1682,7 +1677,7 @@ class ThreeStagePipeline:
         try:
             await checkpointer.save_checkpoint(
                 evaluation_id=evaluation_id,
-                task_index=self._state.get("current_task_index", 0),
+                task_index=self.state.get("current_task_index", 0),
                 state_data=dict(self._state),
                 metadata={"stage": stage, "pipeline_type": "three_stage"},
             )
@@ -1694,12 +1689,10 @@ class ThreeStagePipeline:
     # ------------------------------------------------------------------
 
     def _task_to_dict(self, task: EvalTask) -> dict:
-        task_type = task.task_type
-        if hasattr(task_type, "value"):
-            task_type = task_type.value
+        task_type_value: str = task.task_type.value if hasattr(task.task_type, "value") else str(task.task_type)
         return {
             "task_id": task.task_id,
-            "task_type": task_type,
+            "task_type": task_type_value,
             "query": task.input_data.get("query", "") if isinstance(task.input_data, dict) else "",
             "context": task.context,
             "dimensions": task.input_data.get("dimensions", [])
@@ -1720,13 +1713,11 @@ class ThreeStagePipeline:
         }
 
     def _task_score_to_dict(self, score: TaskScore) -> dict:
-        rating = score.rating
-        if hasattr(rating, "value"):
-            rating = rating.value
+        rating_value: str = score.rating.value if hasattr(score.rating, "value") else str(score.rating)
         return {
             "task_id": score.task_id,
             "overall_score": score.overall_score,
-            "rating": rating,
+            "rating": rating_value,
             "veto_triggered": score.veto_triggered,
             "dimension_scores": [
                 {
@@ -1741,13 +1732,11 @@ class ThreeStagePipeline:
         }
 
     def _eval_score_to_dict(self, score: EvaluationScore) -> dict:
-        overall_rating = score.overall_rating
-        if hasattr(overall_rating, "value"):
-            overall_rating = overall_rating.value
+        overall_rating_value: str = score.overall_rating.value if hasattr(score.overall_rating, "value") else str(score.overall_rating)
         return {
             "agent_id": score.agent_id,
             "overall_score": score.overall_score,
-            "overall_rating": overall_rating,
+            "overall_rating": overall_rating_value,
             "total_tasks": score.total_tasks,
             "passed_tasks": score.passed_tasks,
             "veto_count": score.veto_count,

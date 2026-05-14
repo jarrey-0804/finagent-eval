@@ -363,7 +363,7 @@ class UniversalToolAuditor:
         if not self.config.audit_sensitive_args:
             return args
 
-        filtered = {}
+        filtered: dict[str, Any] = {}
         for key, value in args.items():
             if key.lower() in [f.lower() for f in self.config.sensitive_fields]:
                 filtered[key] = "***REDACTED***"

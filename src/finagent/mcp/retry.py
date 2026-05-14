@@ -89,7 +89,8 @@ class RetryHandler:
 
         for attempt in range(self.config.max_attempts):
             try:
-                return await func(*args, **kwargs)
+                result = await func(*args, **kwargs)  # type: ignore[misc]
+                return result  # type: ignore[no-any-return]
             except self.config.retryable_exceptions as e:
                 last_exception = e
 
@@ -171,7 +172,7 @@ def with_retry(
 
         # 根据函数类型返回合适的包装器
         if asyncio.iscoroutinefunction(func):
-            return async_wrapper
-        return sync_wrapper
+            return async_wrapper  # type: ignore[return-value]
+        return sync_wrapper  # type: ignore[return-value]
 
     return decorator

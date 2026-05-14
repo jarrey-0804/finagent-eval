@@ -97,16 +97,22 @@ class JudgeConfig(BaseModel):
             ModelConfig(
                 provider=LLMProvider.OPENAI,
                 model_name="gpt-4o",
+                api_key=None,
+                base_url=None,
                 weight=1.0,
             ),
             ModelConfig(
                 provider=LLMProvider.ANTHROPIC,
                 model_name="claude-sonnet-4-20250514",
+                api_key=None,
+                base_url=None,
                 weight=1.0,
             ),
             ModelConfig(
                 provider=LLMProvider.DEEPSEEK,
                 model_name="deepseek-chat",
+                api_key=None,
+                base_url=None,
                 weight=0.8,
             ),
         ]
@@ -130,6 +136,8 @@ class JudgeConfig(BaseModel):
             ModelConfig(
                 provider=LLMProvider.DEEPSEEK,
                 model_name="deepseek-reasoner",
+                api_key=None,
+                base_url=None,
                 weight=0.7,
             ),
         ],
@@ -174,7 +182,7 @@ class BaseLLMModel(ABC):
                 if attempt < self.config.max_retries - 1:
                     await asyncio.sleep(self.config.retry_delay * (attempt + 1))
 
-        raise last_error
+        raise last_error  # type: ignore[misc]
 
 
 class OpenAIModel(BaseLLMModel):
@@ -211,7 +219,7 @@ class OpenAIModel(BaseLLMModel):
                 top_p=self.config.top_p,
             )
 
-            return response.choices[0].message.content
+            return str(response.choices[0].message.content)
 
         except ImportError:
             # 模拟响应
@@ -255,7 +263,7 @@ class AnthropicModel(BaseLLMModel):
                 messages=[{"role": "user", "content": prompt}],
             )
 
-            return response.content[0].text
+            return str(response.content[0].text)
 
         except ImportError:
             return self._mock_response(prompt)
@@ -305,7 +313,7 @@ class DeepSeekModel(BaseLLMModel):
                 max_tokens=self.config.max_tokens,
             )
 
-            return response.choices[0].message.content
+            return str(response.choices[0].message.content)
 
         except ImportError:
             return self._mock_response(prompt)
@@ -355,7 +363,7 @@ class DashScopeModel(BaseLLMModel):
                 max_tokens=self.config.max_tokens,
             )
 
-            return response.choices[0].message.content
+            return str(response.choices[0].message.content)
 
         except ImportError:
             return self._mock_response(prompt)
@@ -404,7 +412,7 @@ class ZhipuModel(BaseLLMModel):
                 max_tokens=self.config.max_tokens,
             )
 
-            return response.choices[0].message.content
+            return str(response.choices[0].message.content)
 
         except ImportError:
             return self._mock_response(prompt)
@@ -591,7 +599,7 @@ class ConsensusBuilder:
                 bins[min(range(len(bins) - 1), key=lambda i: abs(s - (bins[i] + bins[i + 1]) / 2))]
                 for s in scores
             ]
-            consensus = statistics.mode(binned_scores)
+            consensus: float = float(statistics.mode(binned_scores))
 
         elif method == ConsensusMethod.WEIGHTED_AVERAGE:
             if weights and len(weights) == len(scores):
@@ -825,7 +833,14 @@ class LLMJudge:
     ) -> dict[EvalDimension, MultiJudgeResult]:
         """对所有维度进行评分"""
 
-        dimensions = dimensions or task.dimensions
+        dimensions = dimensions or getattr(task, "dimensions", None)
+        if dimensions is None:
+            # 如果 task 没有 dimensions 属性，使用 dimension 属性
+            dim = task.dimension
+            if isinstance(dim, list):
+                dimensions = dim
+            else:
+                dimensions = [dim]  # type: ignore[list-item]
         results = {}
 
         for dimension in dimensions:

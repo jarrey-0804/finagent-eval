@@ -12,12 +12,13 @@ from typing import Any
 
 from ..interface import (
     AgentConfig,
-    AgentExecutionException,
+    AgentExecutionError,
     AgentState,
+    AgentType,
     EvalResponse,
     EvalTask,
     FinancialAgentInterface,
-    TaskTimeoutException,
+    TaskTimeoutError,
 )
 
 
@@ -60,7 +61,7 @@ class LangGraphAdapter(FinancialAgentInterface):
         agent_type: str,
         graph: Any,
         model_name: str = "gpt-4o",
-        tools: list = None,
+        tools: list[Any] | None = None,
         checkpointer: Any = None,
         description: str = "",
     ):
@@ -94,7 +95,7 @@ class LangGraphAdapter(FinancialAgentInterface):
         """返回 Agent 配置信息。"""
         return AgentConfig(
             agent_name=self._agent_name,
-            agent_type=self._agent_type,
+            agent_type=AgentType(self._agent_type),
             version="1.0.0",
             framework="langgraph",
             llm_backend=self._model_name,
@@ -113,8 +114,8 @@ class LangGraphAdapter(FinancialAgentInterface):
             EvalResponse: 评测响应。
 
         Raises:
-            TaskTimeoutException: 任务执行超时。
-            AgentExecutionException: Agent 执行出错。
+            TaskTimeoutError: 任务执行超时。
+            AgentExecutionError: Agent 执行出错。
         """
         start_time = time.time()
         thread_id = f"eval_{task.task_id}"
@@ -161,10 +162,10 @@ class LangGraphAdapter(FinancialAgentInterface):
             )
 
         except TimeoutError as err:
-            raise TaskTimeoutException(task.task_id, task.time_limit_seconds) from err
+            raise TaskTimeoutError(task.task_id, task.time_limit_seconds) from err
 
         except Exception as e:
-            raise AgentExecutionException(
+            raise AgentExecutionError(
                 message=str(e),
                 error_code="LANGGRAPH_ERROR",
                 recoverable=False,
@@ -249,9 +250,9 @@ class LangGraphAdapter(FinancialAgentInterface):
     def _build_input_content(self, task: EvalTask) -> str:
         """构建输入内容。"""
         if "question" in task.input_data:
-            return task.input_data["question"]
+            return str(task.input_data["question"])
         elif "instruction" in task.input_data:
-            return task.input_data["instruction"]
+            return str(task.input_data["instruction"])
         else:
             return str(task.input_data)
 
@@ -260,9 +261,9 @@ class LangGraphAdapter(FinancialAgentInterface):
         if "messages" in result and result["messages"]:
             last_message = result["messages"][-1]
             if hasattr(last_message, "content"):
-                return last_message.content
+                return str(last_message.content)
             elif isinstance(last_message, dict):
-                return last_message.get("content", str(last_message))
+                return str(last_message.get("content", str(last_message)))
         return str(result)
 
     def _extract_tool_calls(self, result: dict) -> list[dict]:

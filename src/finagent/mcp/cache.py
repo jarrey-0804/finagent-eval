@@ -153,7 +153,8 @@ class DataCache:
     def get_stats(self) -> dict:
         """获取缓存统计"""
         if hasattr(self._backend, "get_stats"):
-            return self._backend.get_stats()
+            result = self._backend.get_stats()
+            return result if isinstance(result, dict) else {}
         return {}
 
     @staticmethod

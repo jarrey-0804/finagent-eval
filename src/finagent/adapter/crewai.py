@@ -13,6 +13,7 @@ from ..interface.base import FinancialAgentInterface
 from ..interface.models import (
     AgentConfig,
     AgentState,
+    AgentType,
     EvalResponse,
     EvalTask,
 )
@@ -35,7 +36,7 @@ class CrewAIAdapter(FinancialAgentInterface):
         self._crew = crew
         self._config = config or AgentConfig(
             agent_name="crewai-agent",
-            agent_type="crewai",
+            agent_type=AgentType("crewai"),
             version="0.1.0",
             framework="crewai",
             llm_backend="unknown",
@@ -88,8 +89,7 @@ class CrewAIAdapter(FinancialAgentInterface):
 
     def get_state(self) -> AgentState:
         return AgentState(
-            status="idle",
-            metadata={"framework": "crewai"},
+            metadata={"framework": "crewai", "status": "idle"},
         )
 
     def reset(self, scope: str = "all") -> None:
@@ -125,9 +125,9 @@ class CrewAIAdapter(FinancialAgentInterface):
     def _build_input_content(self, task: EvalTask) -> str:
         """从 EvalTask 构建输入内容"""
         if "question" in task.input_data:
-            return task.input_data["question"]
+            return str(task.input_data["question"])
         elif "instruction" in task.input_data:
-            return task.input_data["instruction"]
+            return str(task.input_data["instruction"])
         else:
             return str(task.input_data)
 

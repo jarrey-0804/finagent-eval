@@ -176,11 +176,10 @@ class TestTaskGeneratorNode:
         task = MagicMock()
         task.task_id = "t1"
         task.task_type = TaskType.KNOWLEDGE_QA
-        task.query = "q"
+        task.input_data = {"query": "q", "reference_answer": ""}
         task.context = {}
-        task.dimensions = [EvalDimension.ACCURACY, EvalDimension.COMPLETENESS]
-        task.timeout_seconds = 120
-        task.reference_answer = ""
+        task.dimension = "accuracy"
+        task.time_limit_seconds = 120
 
         generator = MagicMock(spec=EvalTaskGenerator)
         generator.generate_full_mode_tasks.return_value = [task]
@@ -190,7 +189,7 @@ class TestTaskGeneratorNode:
         result = await node.execute(state)
 
         assert "dimensions" in result["tasks"][0]
-        assert result["tasks"][0]["dimensions"] == ["accuracy", "completeness"]
+        assert result["tasks"][0]["dimensions"] == ["accuracy"]
 
 
 # ===========================================================================

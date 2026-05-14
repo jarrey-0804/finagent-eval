@@ -8,17 +8,19 @@ HTTP 适配器
 import asyncio
 import time
 from collections.abc import AsyncIterator
+from typing import Any
 
 import aiohttp
 
 from ..interface import (
     AgentConfig,
-    AgentExecutionException,
+    AgentExecutionError,
     AgentState,
+    AgentType,
     EvalResponse,
     EvalTask,
     FinancialAgentInterface,
-    TaskTimeoutException,
+    TaskTimeoutError,
 )
 
 
@@ -79,12 +81,12 @@ class HTTPAdapter(FinancialAgentInterface):
         agent_name: str,
         agent_type: str,
         api_endpoint: str,
-        api_key: str = None,
+        api_key: str | None = None,
         llm_backend: str = "unknown",
         version: str = "1.0.0",
         description: str = "",
         timeout_seconds: int = 300,
-        headers: dict = None,
+        headers: dict[Any, Any] | None = None,
     ):
         """
         初始化 HTTP 适配器。
@@ -120,7 +122,7 @@ class HTTPAdapter(FinancialAgentInterface):
         """返回 Agent 配置信息。"""
         return AgentConfig(
             agent_name=self._agent_name,
-            agent_type=self._agent_type,
+            agent_type=AgentType(self._agent_type),
             version=self._version,
             framework="http",
             llm_backend=self._llm_backend,
@@ -140,8 +142,8 @@ class HTTPAdapter(FinancialAgentInterface):
             EvalResponse: 评测响应。
 
         Raises:
-            TaskTimeoutException: 任务执行超时。
-            AgentExecutionException: Agent 执行出错。
+            TaskTimeoutError: 任务执行超时。
+            AgentExecutionError: Agent 执行出错。
         """
         start_time = time.time()
         timeout = task.time_limit_seconds or self._timeout_seconds
@@ -183,7 +185,7 @@ class HTTPAdapter(FinancialAgentInterface):
                         )
                     else:
                         error_text = await response.text()
-                        raise AgentExecutionException(
+                        raise AgentExecutionError(
                             message=f"HTTP {response.status}: {error_text}",
                             error_code="HTTP_ERROR",
                             recoverable=response.status >= 500,
@@ -191,10 +193,10 @@ class HTTPAdapter(FinancialAgentInterface):
                         )
 
         except TimeoutError as err:
-            raise TaskTimeoutException(task.task_id, timeout) from err
+            raise TaskTimeoutError(task.task_id, timeout) from err
 
         except aiohttp.ClientError as e:
-            raise AgentExecutionException(
+            raise AgentExecutionError(
                 message=f"HTTP client error: {str(e)}",
                 error_code="HTTP_CLIENT_ERROR",
                 recoverable=True,

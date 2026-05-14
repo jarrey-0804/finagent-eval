@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from ..interface.exceptions import EvaluationException
+from ..interface.exceptions import EvaluationError
 from ..pipeline.checkpointer import CheckpointConfig, PostgresCheckpointer
 from .middleware.auth import JWTAuthMiddleware
 from .middleware.ratelimit import RateLimitConfig, RateLimitMiddleware
@@ -31,8 +31,8 @@ class AppConfig:
     database_url: str = "postgresql://localhost/finagent_eval"
 
     # CORS配置
-    cors_origins: list[str] = None
-    cors_methods: list[str] = None
+    cors_origins: list[str] | None = None
+    cors_methods: list[str] | None = None
 
     # 响应时间配置
     response_timeout_ms: float = 5000.0  # 单请求硬超时 5s
@@ -95,9 +95,9 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     # 添加CORS中间件
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=config.cors_origins,
+        allow_origins=config.cors_origins or [],
         allow_credentials=True,
-        allow_methods=config.cors_methods,
+        allow_methods=config.cors_methods or [],
         allow_headers=["*"],
     )
 
@@ -164,7 +164,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                     "message": "请求频率超过限制，请稍后重试",
                     "retry_after": result.retry_after,
                 },
-                headers={"Retry-After": str(int(result.retry_after))},
+                headers={"Retry-After": str(int(result.retry_after)) if result.retry_after is not None else "0"},
             )
         rl_middleware.record_request(key)
         response = await call_next(request)
@@ -195,10 +195,10 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             await ws_manager.disconnect(evaluation_id, websocket)
 
     # 注册异常处理器
-    @app.exception_handler(EvaluationException)
+    @app.exception_handler(EvaluationError)
     async def evaluation_exception_handler(
         request: Request,
-        exc: EvaluationException,
+        exc: EvaluationError,
     ):
         return JSONResponse(
             status_code=400,

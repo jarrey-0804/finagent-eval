@@ -23,9 +23,9 @@ class DatabaseConfig(BaseModel):
 class LLMConfig(BaseModel):
     """LLM配置"""
 
-    openai_api_key: str | None = Field(None, description="OpenAI API密钥")
-    anthropic_api_key: str | None = Field(None, description="Anthropic API密钥")
-    deepseek_api_key: str | None = Field(None, description="DeepSeek API密钥")
+    openai_api_key: str | None = Field(default=None, description="OpenAI API密钥")
+    anthropic_api_key: str | None = Field(default=None, description="Anthropic API密钥")
+    deepseek_api_key: str | None = Field(default=None, description="DeepSeek API密钥")
 
     default_model: str = Field(default="gpt-4o", description="默认模型")
     temperature: float = Field(default=0.1, description="温度参数")
@@ -60,17 +60,17 @@ class LoggingConfig(BaseModel):
     format: str = Field(
         default="%(asctime)s - %(name)s - %(levelname)s - %(message)s", description="日志格式"
     )
-    file: str | None = Field(None, description="日志文件路径")
+    file: str | None = Field(default=None, description="日志文件路径")
 
 
 class Config(BaseModel):
     """主配置"""
 
-    database: DatabaseConfig = Field(default_factory=DatabaseConfig)
-    llm: LLMConfig = Field(default_factory=LLMConfig)
-    evaluation: EvaluationConfig = Field(default_factory=EvaluationConfig)
-    api: APIConfig = Field(default_factory=APIConfig)
-    logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    database: DatabaseConfig = Field(default_factory=lambda: DatabaseConfig())
+    llm: LLMConfig = Field(default_factory=lambda: LLMConfig())
+    evaluation: EvaluationConfig = Field(default_factory=lambda: EvaluationConfig())
+    api: APIConfig = Field(default_factory=lambda: APIConfig())
+    logging: LoggingConfig = Field(default_factory=lambda: LoggingConfig())
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "Config":

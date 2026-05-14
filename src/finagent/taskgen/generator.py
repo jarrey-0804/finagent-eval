@@ -214,7 +214,8 @@ class BizFinBenchDataset(BaseDataset):
 
         if data_file.exists():
             with open(data_file, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                return data if isinstance(data, list) else []
 
         # 返回示例数据
         return self._get_sample_data()
@@ -352,7 +353,8 @@ class FinMCPBenchDataset(BaseDataset):
 
         if data_file.exists():
             with open(data_file, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                return data if isinstance(data, list) else []
 
         return self._get_sample_data()
 
@@ -443,7 +445,8 @@ class StockBenchDataset(BaseDataset):
 
         if data_file.exists():
             with open(data_file, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                return data if isinstance(data, list) else []
 
         return self._get_sample_data()
 
@@ -535,7 +538,8 @@ class TraderBenchDataset(BaseDataset):
 
         if data_file.exists():
             with open(data_file, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                return data if isinstance(data, list) else []
 
         return self._get_sample_data()
 
@@ -627,7 +631,8 @@ class FinTrustDataset(BaseDataset):
 
         if data_file.exists():
             with open(data_file, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                return data if isinstance(data, list) else []
 
         return self._get_sample_data()
 
@@ -823,7 +828,7 @@ class TaskSampler:
         per_category = n // n_categories
 
         result = []
-        for category, group in groups.items():
+        for _category, group in groups.items():
             if len(group) >= per_category:
                 result.extend(random.sample(group, per_category))
             else:

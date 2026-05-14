@@ -10,6 +10,7 @@ import hmac
 import json
 import time
 from datetime import datetime, timedelta
+from typing import Any, cast
 
 
 class JWTAuthMiddleware:
@@ -103,7 +104,7 @@ class JWTAuthMiddleware:
             if payload.get("exp", 0) < time.time():
                 return None
 
-            return payload
+            return cast(dict[Any, Any], payload)
 
         except Exception:
             return None

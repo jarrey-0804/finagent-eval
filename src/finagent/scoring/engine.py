@@ -280,7 +280,7 @@ class AccuracyMetric(BaseMetric):
         """计算准确性分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         # 检查是否有错误
         if response.error:
@@ -365,7 +365,7 @@ class CompletenessMetric(BaseMetric):
         """计算完整性分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         if response.error or not response.output:
             return 0.0, 1.0, ["无有效输出"], "无法评估完整性"
@@ -462,7 +462,7 @@ class ReasoningMetric(BaseMetric):
         """计算推理能力分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         if response.error or not response.output:
             return 0.0, 1.0, ["无有效输出"], "无法评估推理能力"
@@ -538,7 +538,7 @@ class ToolUsageMetric(BaseMetric):
         """计算工具使用分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         tool_calls = response.tool_calls or []
 
@@ -602,7 +602,7 @@ class ComplianceMetric(BaseMetric):
         """计算合规性分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         if response.error or not response.output:
             return 100.0, 1.0, ["无输出"], "无违规风险"
@@ -674,7 +674,7 @@ class RiskAwarenessMetric(BaseMetric):
         """计算风险意识分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         if response.error or not response.output:
             return 100.0, 1.0, ["无输出"], "无风险"
@@ -743,7 +743,7 @@ class ProfessionalismMetric(BaseMetric):
         """计算专业性分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         if response.error or not response.output:
             return 0.0, 1.0, ["无输出"], "无法评估专业性"
@@ -826,7 +826,7 @@ class RobustnessMetric(BaseMetric):
         """计算鲁棒性分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         # 检查是否有错误恢复
         if response.error:
@@ -885,7 +885,7 @@ class SecurityMetric(BaseMetric):
         """计算安全性分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         # 检查是否是对抗性任务
         is_adversarial = task.metadata.get("is_adversarial", False)
@@ -950,7 +950,7 @@ class TransparencyMetric(BaseMetric):
         """计算透明度分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         if response.error or not response.output:
             return 0.0, 1.0, ["无输出"], "无法评估透明度"
@@ -1010,7 +1010,7 @@ class ConsistencyMetric(BaseMetric):
         """计算一致性分数"""
 
         evidence = []
-        reasoning_parts = []
+        reasoning_parts: list[str] = []
 
         if response.error or not response.output:
             return 100.0, 1.0, ["无输出"], "无一致性问题"
@@ -1221,8 +1221,18 @@ class ScoringEngine:
 
         dimension_scores = []
 
-        dimensions = task.dimension if isinstance(task.dimension, list) else [task.dimension]
-        for dimension in dimensions:
+        raw_dimensions = task.dimension if isinstance(task.dimension, list) else [task.dimension]
+        for raw_dim in raw_dimensions:
+            # 将 str 转换为 EvalDimension
+            if isinstance(raw_dim, str):
+                try:
+                    dimension = EvalDimension(raw_dim)
+                except ValueError:
+                    continue
+            elif isinstance(raw_dim, EvalDimension):
+                dimension = raw_dim
+            else:
+                continue
             if dimension in self.metrics:
                 metric = self.metrics[dimension]
                 score, confidence, evidence, reasoning = metric.compute(task, response, reference)

@@ -8,8 +8,8 @@ from finagent.interface.models import (
     EvalStatus, EvalDimension, TaskType, DifficultyLevel,
 )
 from finagent.interface.exceptions import (
-    EvaluationException, TaskTimeoutException, AgentExecutionException,
-    ToolCallException, EnvironmentException, ScoringException,
+    EvaluationError, TaskTimeoutError, AgentExecutionError,
+    ToolCallError, EnvironmentError, ScoringError,
 )
 
 
@@ -90,29 +90,29 @@ class TestExceptions:
 
     def test_evaluation_exception(self):
         """测试基础异常"""
-        exc = EvaluationException("评测失败")
+        exc = EvaluationError("评测失败")
         assert str(exc) == "[EVAL_UNKNOWN] 评测失败"
 
     def test_task_timeout_exception(self):
         """测试任务超时异常"""
-        exc = TaskTimeoutException(task_id="task_001", timeout_seconds=120)
+        exc = TaskTimeoutError(task_id="task_001", timeout_seconds=120)
         assert "task_001" in str(exc)
         assert "120" in str(exc)
 
     def test_agent_execution_exception(self):
         """测试Agent执行异常"""
-        exc = AgentExecutionException(message="Agent执行失败: 连接失败")
+        exc = AgentExecutionError(message="Agent执行失败: 连接失败")
         assert "连接失败" in str(exc)
 
     def test_tool_call_exception(self):
         """测试工具调用异常"""
-        exc = ToolCallException(tool_name="get_stock_price", error="参数错误")
+        exc = ToolCallError(tool_name="get_stock_price", error="参数错误")
         assert "get_stock_price" in str(exc)
 
     def test_exception_hierarchy(self):
         """测试异常继承"""
-        assert issubclass(TaskTimeoutException, EvaluationException)
-        assert issubclass(AgentExecutionException, EvaluationException)
-        assert issubclass(ToolCallException, EvaluationException)
-        assert issubclass(EnvironmentException, EvaluationException)
-        assert issubclass(ScoringException, EvaluationException)
+        assert issubclass(TaskTimeoutError, EvaluationError)
+        assert issubclass(AgentExecutionError, EvaluationError)
+        assert issubclass(ToolCallError, EvaluationError)
+        assert issubclass(EnvironmentError, EvaluationError)
+        assert issubclass(ScoringError, EvaluationError)
